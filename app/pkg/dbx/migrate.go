@@ -63,9 +63,14 @@ func Migrate(ctx context.Context, path string) error {
 
 	totalMigrationsExecuted := 0
 
+	pending, err := pendingMigrations(versions, lastVersion)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pending migrations")
+	}
+
 	// Apply all migrations
 	for _, version := range versions {
-		if version > lastVersion {
+		if pending[version] {
 			fileName := versionFiles[version]
 			log.Infof(ctx, "Running Version: @{Version} (@{FileName})", dto.Props{
 				"Version":  version,

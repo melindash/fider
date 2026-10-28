@@ -15,8 +15,9 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | GitHub discussion import | `scripts/mageos/import-github-discussions.mjs`, `PUT /api/v1/posts/:number/historical-votes`, `GET /api/v1/mageos/links?url=` | Dry run by default; `--apply` to write. Skips discussions already linked as a source. Read-only towards GitHub. |
 | GitHub links and webhook | `app/handlers/apiv1/mageos_links.go`, `app/handlers/webhooks/mageos_github.go`, `PostLinks.tsx` | Read-only towards GitHub. |
 | Accessible vote button | `public/components/VoteCounter.tsx` | `aria-label`, `aria-pressed`. |
+| Out-of-order migrations | `app/pkg/dbx/migrate_mageos.go` | Applies every migration missing from `migrations_history`. Upstream applies only versions above the newest applied one, which would skip upstream migrations dated before a fork migration. |
 
-Upstream files touched only at integration seams: `routes.go`, `server.go`, `postgres.go` (handler registration), `post.go` (vote aggregation and `has_voted`), `common.go` (status filters), `actions/post.go` (status validation), entity/db Post structs, `VoteCounter.tsx`, `VoteSection.tsx`.
+Upstream files touched only at integration seams: `migrate.go` (one condition), `routes.go`, `server.go`, `postgres.go` (handler registration), `post.go` (vote aggregation and `has_voted`), `common.go` (status filters), `actions/post.go` (status validation), entity/db Post structs, `VoteCounter.tsx`, `VoteSection.tsx`.
 
 ## Configuration
 
@@ -61,9 +62,8 @@ GitHub webhook setup (after approval): repository or organization â†’ Settings â
 
 1. `git fetch upstream --tags && git switch mage-os && git merge <upstream-tag>`.
 2. Resolve conflicts at the seams listed above.
-3. `bash scripts/mageos/check-migration-order.sh ORIG_HEAD`. Fider applies only migrations newer than the database's last version; an upstream migration that sorts before our newest fork migration would be skipped. Follow the script's instructions if it fails.
-4. Run tests the way the Makefile does: `docker compose up -d pgtest`, `make build-server build-ssr build-ui`, `godotenv -f .test.env ./fider migrate`, `godotenv -f .test.env go test ./... -short`, `TZ=GMT npx jest ./public`, `make lint`.
-5. Rehearse on a staging restore of production before deploying. Record old and new image tags.
+3. Run tests the way the Makefile does: `docker compose up -d pgtest`, `make build-server build-ssr build-ui`, `godotenv -f .test.env ./fider migrate`, `godotenv -f .test.env go test ./... -short`, `TZ=GMT npx jest ./public`, `make lint`.
+4. Rehearse on a staging restore of production before deploying. Record old and new image tags.
 
 Rules that keep merges small:
 
