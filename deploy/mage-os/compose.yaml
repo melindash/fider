@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgres://fider:${POSTGRES_PASSWORD}@db:5432/fider?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       BLOB_STORAGE: sql
+      POST_CREATION_WITH_TAGS_ENABLED: 'true'
       LOG_CONSOLE: 'true'
       LOG_LEVEL: INFO
       EMAIL_NOREPLY: ${EMAIL_NOREPLY:?Set EMAIL_NOREPLY}
