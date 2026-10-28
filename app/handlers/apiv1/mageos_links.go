@@ -91,3 +91,50 @@ func DeletePostLink() web.HandlerFunc {
 		return c.Ok(web.Map{})
 	}
 }
+
+// FindPostByLink returns the post already linked to a GitHub URL, so imports can skip it.
+func FindPostByLink() web.HandlerFunc {
+	return func(c *web.Context) error {
+		target, ok := mageos.ParseGitHubURL(c.QueryParam("url"))
+		if !ok {
+			return c.BadRequest(web.Map{"message": "Use a https://github.com link."})
+		}
+		q := &query.MageOSFindPostByLinkURL{URL: target.URL}
+		if err := bus.Dispatch(c, q); err != nil {
+			return c.Failure(err)
+		}
+		return c.Ok(web.Map{"postNumber": q.Result})
+	}
+}
+
+// SetHistoricalVotes sets the GitHub vote baseline of an imported post. Administrators only.
+func SetHistoricalVotes() web.HandlerFunc {
+	return func(c *web.Context) error {
+		input := struct {
+			Votes  int    `json:"votes"`
+			Source string `json:"source"`
+		}{}
+		if err := c.Bind(&input); err != nil || input.Votes < 0 || input.Votes > 100000 {
+			return c.BadRequest(web.Map{"message": "votes must be between 0 and 100000."})
+		}
+		if input.Source != "" {
+			target, ok := mageos.ParseGitHubURL(input.Source)
+			if !ok {
+				return c.BadRequest(web.Map{"message": "source must be a https://github.com link."})
+			}
+			input.Source = target.URL
+		}
+		number, err := c.ParamAsInt("number")
+		if err != nil {
+			return c.NotFound()
+		}
+		getPost := &query.GetPostByNumber{Number: number}
+		if err := bus.Dispatch(c, getPost); err != nil {
+			return c.Failure(err)
+		}
+		if err := bus.Dispatch(c, &cmd.MageOSSetHistoricalVotes{Post: getPost.Result, Votes: input.Votes, Source: input.Source}); err != nil {
+			return c.Failure(err)
+		}
+		return c.Ok(web.Map{})
+	}
+}

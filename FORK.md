@@ -12,6 +12,7 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | Sign-in merge | `app/middlewares/mageos_voter.go` | On the first signed-in request carrying a voter cookie: votes and roles move to the account, duplicates collapse. |
 | Participant roles | `ParticipantRolesModal.tsx`, `users.mageos_roles`, `mageos_anonymous_voters.roles` | Multi-select, optional, prompted once, editable from any idea page. Never weights votes. |
 | Historical GitHub votes | `posts.mageos_historical_votes`, `mageos_historical_source` | Set per idea when importing GitHub discussions. Counted in totals and ranking; shown separately on the idea page. |
+| GitHub discussion import | `scripts/mageos/import-github-discussions.mjs`, `PUT /api/v1/posts/:number/historical-votes`, `GET /api/v1/mageos/links?url=` | Dry run by default; `--apply` to write. Skips discussions already linked as a source. Read-only towards GitHub. |
 | GitHub links and webhook | `app/handlers/apiv1/mageos_links.go`, `app/handlers/webhooks/mageos_github.go`, `PostLinks.tsx` | Read-only towards GitHub. |
 | Accessible vote button | `public/components/VoteCounter.tsx` | `aria-label`, `aria-pressed`. |
 

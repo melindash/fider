@@ -48,6 +48,7 @@ func registerMageOSHandlers() {
 	bus.AddHandler(mageosVoidAnonymousVotes)
 	bus.AddHandler(mageosPurgeNetworkHashes)
 	registerMageOSLinkHandlers()
+	registerMageOSImportHandlers()
 }
 
 const mageosVoterColumns = `id, roles, roles_prompted_at, merged_into_user_id`
@@ -413,5 +414,39 @@ func mageosApplyGitHubState(ctx context.Context, c *cmd.MageOSApplyGitHubState) 
 			c.PostIDs = append(c.PostIDs, postID)
 		}
 		return rows.Err()
+	})
+}
+
+func registerMageOSImportHandlers() {
+	bus.AddHandler(mageosSetHistoricalVotes)
+	bus.AddHandler(mageosFindPostByLinkURL)
+}
+
+func mageosSetHistoricalVotes(ctx context.Context, c *cmd.MageOSSetHistoricalVotes) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		_, err := trx.Execute(`UPDATE posts SET mageos_historical_votes = $3, mageos_historical_source = NULLIF($4, '') WHERE tenant_id = $1 AND id = $2`,
+			tenant.ID, c.Post.ID, c.Votes, c.Source)
+		if err != nil {
+			return errors.Wrap(err, "failed to set historical votes")
+		}
+		return nil
+	})
+}
+
+func mageosFindPostByLinkURL(ctx context.Context, q *query.MageOSFindPostByLinkURL) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		q.Result = 0
+		err := trx.Scalar(&q.Result, `
+			SELECT p.number FROM mageos_post_links l
+			INNER JOIN posts p ON p.id = l.post_id AND p.tenant_id = l.tenant_id
+			WHERE l.tenant_id = $1 AND l.url = $2 AND p.status <> 6
+			ORDER BY p.number LIMIT 1`, tenant.ID, q.URL)
+		if errors.Cause(err) == app.ErrNotFound {
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed to find post by link")
+		}
+		return nil
 	})
 }

@@ -267,9 +267,11 @@ func routes(r *web.Engine) *web.Engine {
 		mageosApi.Get("/api/v1/mageos/vote-bursts", apiv1.ListVoteBursts())
 		mageosApi.Post("/api/v1/posts/:number/links", apiv1.AddPostLink())
 		mageosApi.Delete("/api/v1/posts/:number/links/:id", apiv1.DeletePostLink())
+		mageosApi.Get("/api/v1/mageos/links", apiv1.FindPostByLink())
 
 		mageosApi.Use(middlewares.IsAuthorized(enum.RoleAdministrator))
 		mageosApi.Post("/api/v1/mageos/vote-bursts/void", apiv1.VoidVoteBurst())
+		mageosApi.Put("/api/v1/posts/:number/historical-votes", apiv1.SetHistoricalVotes())
 	}
 
 	// Operations used to manage the content of a site

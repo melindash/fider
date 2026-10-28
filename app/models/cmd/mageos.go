@@ -104,3 +104,10 @@ type MageOSApplyGitHubState struct {
 
 	PostIDs []int
 }
+
+// MageOSSetHistoricalVotes sets (not adds) the GitHub vote baseline, so re-imports are idempotent.
+type MageOSSetHistoricalVotes struct {
+	Post   *entity.Post
+	Votes  int
+	Source string
+}

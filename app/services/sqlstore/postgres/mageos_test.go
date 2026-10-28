@@ -267,3 +267,26 @@ func TestMageOS_GitHubDeliveryIsProcessedOnce(t *testing.T) {
 	bus.MustDispatch(demoTenantCtx, retry)
 	Expect(retry.Duplicate).IsTrue()
 }
+
+func TestMageOS_ImportHelpersAreIdempotent(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	url := "https://github.com/orgs/mage-os-lab/discussions/2"
+	find := &query.MageOSFindPostByLinkURL{URL: url}
+	bus.MustDispatch(demoTenantCtx, find)
+	Expect(find.Result).Equals(0)
+
+	newPost := &cmd.AddNewPost{Title: "Imported discussion", Description: "x"}
+	bus.MustDispatch(jonSnowCtx, newPost)
+	bus.MustDispatch(jonSnowCtx, &cmd.MageOSAddPostLink{Post: newPost.Result, Kind: mageos.LinkDiscussion, URL: url, Repo: "mage-os-lab", Number: 2, IsSource: true})
+	for i := 0; i < 2; i++ {
+		bus.MustDispatch(jonSnowCtx, &cmd.MageOSSetHistoricalVotes{Post: newPost.Result, Votes: 6, Source: url})
+	}
+
+	bus.MustDispatch(demoTenantCtx, find)
+	Expect(find.Result).Equals(newPost.Result.Number)
+	post := reloadPost(demoTenantCtx, newPost.Result.Number)
+	Expect(post.HistoricalVotesCount).Equals(6)
+	Expect(post.VotesCount).Equals(6)
+}

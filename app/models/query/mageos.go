@@ -38,3 +38,10 @@ type MageOSListPostLinks struct {
 
 	Result []*entity.MageOSPostLink
 }
+
+// MageOSFindPostByLinkURL returns the number of a post linked to URL, or 0.
+type MageOSFindPostByLinkURL struct {
+	URL string
+
+	Result int
+}
