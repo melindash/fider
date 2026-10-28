@@ -12,7 +12,9 @@ late=$(git diff --name-only --diff-filter=A "${1:-ORIG_HEAD}" HEAD -- migrations
 if [ -n "$late" ]; then
   echo "These upstream migrations sort before fork migration $newest_fork and would be skipped:" >&2
   echo "$late" >&2
-  echo "Renumber the fork migrations after them (they are idempotent) before deploying." >&2
+  echo "Databases that already ran the fork will never apply them. Add a fork migration numbered" >&2
+  echo "after $newest_fork that re-applies each one idempotently (IF NOT EXISTS / guarded DO blocks)," >&2
+  echo "keep the upstream files for fresh installs, and make sure running both is safe." >&2
   exit 1
 fi
 echo "migration order ok (newest fork migration $newest_fork)"
