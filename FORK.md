@@ -7,17 +7,17 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | Feature | Where | Notes |
 |---|---|---|
 | **Under review** status (`underreview`, id 7) | `app/models/enum/post_status.go`, `public/models/post.ts`, `ShowPostResponse.tsx` | Sits between Open and Planned. Not shown on the roadmap. |
-| Anonymous voting | `app/pkg/mageos/`, `*mageos*.go`, `app/middlewares/mageos_voter.go`, `public/hooks/use-mageos-vote.ts` | Cookie `mageos_voter`; DB stores SHA-256 only. Unique (post, voter) prevents duplicate votes. |
+| Anonymous voting | `app/pkg/mageos/`, `*mageos*.go`, `app/middlewares/mageos_voter.go`, `public/hooks/use-mageos-vote.ts`, `public/components/mageos/` | Cookie `mageos_voter`; DB stores SHA-256 only. Unique (post, voter) prevents duplicate votes. |
 | Rate limits and abuse tools | `app/pkg/mageos/ratelimit.go`, `app/handlers/apiv1/mageos.go` | Per-network limits; admin burst report and void endpoint. |
 | Sign-in merge | `app/middlewares/mageos_voter.go` | On the first signed-in request carrying a voter cookie: votes and roles move to the account, duplicates collapse. |
 | Participant roles | `ParticipantRolesModal.tsx`, `users.mageos_roles`, `mageos_anonymous_voters.roles` | Multi-select, optional, prompted once, editable from any idea page. Never weights votes. |
 | Historical GitHub votes | `posts.mageos_historical_votes`, `mageos_historical_source` | Set per idea when importing GitHub discussions. Counted in totals and ranking; shown separately on the idea page. |
 | GitHub discussion import | `scripts/mageos/import-github-discussions.mjs`, `PUT /api/v1/posts/:number/historical-votes`, `GET /api/v1/mageos/links?url=` | Dry run by default; `--apply` to write. Skips discussions already linked as a source. Read-only towards GitHub. |
 | GitHub links and webhook | `app/handlers/apiv1/mageos_links.go`, `app/handlers/webhooks/mageos_github.go`, `PostLinks.tsx` | Read-only towards GitHub. |
-| Accessible vote button | `public/components/VoteCounter.tsx` | `aria-label`, `aria-pressed`. |
+| Accessible vote button | `public/components/mageos/VoteCounter.tsx` | `aria-label`, `aria-pressed`. |
 | Out-of-order migrations | `app/pkg/dbx/migrate_mageos.go` | Applies every migration missing from `migrations_history`. Upstream applies only versions above the newest applied one, which would skip upstream migrations dated before a fork migration. |
 
-Upstream files touched only at integration seams: `migrate.go` (one condition), `routes.go`, `server.go`, `postgres.go` (handler registration), `post.go` (vote aggregation and `has_voted`), `common.go` (status filters), `actions/post.go` (status validation), entity/db Post structs, `VoteCounter.tsx`, `VoteSection.tsx`.
+Upstream files touched only at integration seams: `routes.go` (middleware, webhook route, `mageosRoutes(r)`), `server.go` and `postgres.go` (registration), `migrate.go` (one condition), `post.go` (vote aggregation and `has_voted`), `common.go` (status filters), `actions/post.go` (status validation), entity/db Post structs, `post_status.go`, `public/components/index.tsx` and `PostDetails.tsx` (point at `components/mageos/VoteCounter` and `VoteSection`), `ShowPostResponse.tsx`, `models/post.ts`, hook and action index files. Upstream `VoteCounter.tsx` and `VoteSection.tsx` are kept unchanged and unused.
 
 ## Configuration
 
@@ -67,6 +67,7 @@ GitHub webhook setup (after approval): repository or organization â†’ Settings â
 
 Rules that keep merges small:
 
+- Put fork code in fork-owned files (`*mageos*`, `mageos/` directories). Edit upstream files only to call into them.
 - Never run `gofmt -w` on a directory; format only files you changed. Newer gofmt versions realign upstream files.
 - Add fork fields at the end of upstream structs after a blank line, so alignment of upstream lines does not change.
 - Fork migrations are named `*_mageos_*.sql` and must be idempotent.
