@@ -6,10 +6,25 @@ import { fiderMock, httpMock, setupModalRoot } from "@fider/services/testing"
 import { FiderContext } from "@fider/services"
 import { act } from "react"
 
+jest.mock("@fider/services/toastify", () => ({ error: jest.fn(), success: jest.fn() }))
+
 let post: Post
+
+type FetchRoutes = Record<string, [number, unknown]>
+
+const mockFetch = (routes: FetchRoutes) => {
+  const participant: [number, unknown] = [200, { roles: [], rolesPrompted: true, availableRoles: [], isAnonymous: true }]
+  const fn = jest.fn((url: string, init?: RequestInit) => {
+    const [status, body] = routes[`${init?.method || "GET"} ${url}`] || (url === "/api/v1/mageos/participant" ? participant : [200, {}])
+    return Promise.resolve({ status, json: () => Promise.resolve(body) } as Response)
+  })
+  global.fetch = fn as unknown as typeof fetch
+  return fn
+}
 
 beforeEach(() => {
   setupModalRoot()
+  mockFetch({})
 
   post = {
     id: 1,
@@ -80,8 +95,8 @@ describe("<VoteCounter />", () => {
     expect(button).not.toHaveClass("c-vote-counter__button--voted")
   })
 
-  test("click when unauthenticated", async () => {
-    const mock = httpMock.alwaysOk()
+  test("click when unauthenticated votes anonymously", async () => {
+    const fetchMock = mockFetch({ "POST /api/v1/posts/10/anonymous-vote": [200, { isNewVoter: true }] })
 
     const { container } = render(
       <FiderContext.Provider value={fiderMock.notAuthenticated()}>
@@ -89,11 +104,56 @@ describe("<VoteCounter />", () => {
       </FiderContext.Provider>
     )
     const button = container.querySelector("button") || fail("button not found")
-    fireEvent.click(button)
+    await act(async () => {
+      fireEvent.click(button)
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/posts/10/anonymous-vote", expect.objectContaining({ method: "POST" }))
+    expect(button).toHaveTextContent("6")
+    expect(button).toHaveAttribute("aria-pressed", "true")
+  })
+
+  test("click when unauthenticated and rate limited keeps the count", async () => {
+    mockFetch({ "POST /api/v1/posts/10/anonymous-vote": [429, { reason: "rate", message: "Please sign in to vote." }] })
+
+    const { container } = render(
+      <FiderContext.Provider value={fiderMock.notAuthenticated()}>
+        <VoteCounter post={post} />
+      </FiderContext.Provider>
+    )
+    const button = container.querySelector("button") || fail("button not found")
+    await act(async () => {
+      fireEvent.click(button)
+    })
+
+    expect(button).toHaveTextContent("5")
+    expect(button).toHaveAttribute("aria-pressed", "false")
+  })
+
+  test("click when anonymous voting is disabled opens sign in", async () => {
+    mockFetch({ "POST /api/v1/posts/10/anonymous-vote": [403, {}] })
+
+    const { container } = render(
+      <FiderContext.Provider value={fiderMock.notAuthenticated()}>
+        <VoteCounter post={post} />
+      </FiderContext.Provider>
+    )
+    const button = container.querySelector("button") || fail("button not found")
+    await act(async () => {
+      fireEvent.click(button)
+    })
 
     expect(screen.queryByTestId("modal")).toBeInTheDocument()
-    expect(mock.post).toHaveBeenCalledTimes(0)
-    expect(mock.delete).toHaveBeenCalledTimes(0)
+    expect(button).toHaveTextContent("5")
+  })
+
+  test("button has an accessible label", () => {
+    const { container } = render(
+      <FiderContext.Provider value={fiderMock.notAuthenticated()}>
+        <VoteCounter post={post} />
+      </FiderContext.Provider>
+    )
+    expect(container.querySelector("button")).toHaveAttribute("aria-label", "Vote for this idea. 5 votes")
   })
 
   test("click when authenticated and hasVoted === false", async () => {

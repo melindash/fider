@@ -12,6 +12,8 @@ export interface Post {
   hasVoted: boolean
   response: PostResponse | null
   votesCount: number
+  historicalVotesCount?: number
+  historicalSource?: string
   commentsCount: number
   tags: string[]
   isApproved: boolean
@@ -44,7 +46,15 @@ export class PostStatus {
     throw new Error(`PostStatus not found for value ${value}.`)
   }
 
-  public static All = [PostStatus.Open, PostStatus.UnderReview, PostStatus.Planned, PostStatus.Started, PostStatus.Completed, PostStatus.Duplicate, PostStatus.Declined]
+  public static All = [
+    PostStatus.Open,
+    PostStatus.UnderReview,
+    PostStatus.Planned,
+    PostStatus.Started,
+    PostStatus.Completed,
+    PostStatus.Duplicate,
+    PostStatus.Declined,
+  ]
 }
 
 export interface PostResponse {
