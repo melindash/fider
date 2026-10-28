@@ -1,6 +1,6 @@
 package enum
 
-//PostStatus is the status of a given post
+// PostStatus is the status of a given post
 type PostStatus int
 
 var (
@@ -18,25 +18,29 @@ var (
 	PostDuplicate PostStatus = 5
 	//PostDeleted is used when the post is completely removed from the site and should never be shown again
 	PostDeleted PostStatus = 6
+	//PostUnderReview is used when organizers are evaluating a post before deciding whether to plan it (Mage-OS fork)
+	PostUnderReview PostStatus = 7
 )
 var postStatusIDs = map[PostStatus]string{
-	PostOpen:      "open",
-	PostStarted:   "started",
-	PostCompleted: "completed",
-	PostDeclined:  "declined",
-	PostPlanned:   "planned",
-	PostDuplicate: "duplicate",
-	PostDeleted:   "deleted",
+	PostOpen:        "open",
+	PostStarted:     "started",
+	PostCompleted:   "completed",
+	PostDeclined:    "declined",
+	PostPlanned:     "planned",
+	PostDuplicate:   "duplicate",
+	PostDeleted:     "deleted",
+	PostUnderReview: "underreview",
 }
 
 var postStatusNames = map[string]PostStatus{
-	"open":      PostOpen,
-	"started":   PostStarted,
-	"completed": PostCompleted,
-	"declined":  PostDeclined,
-	"planned":   PostPlanned,
-	"duplicate": PostDuplicate,
-	"deleted":   PostDeleted,
+	"open":        PostOpen,
+	"started":     PostStarted,
+	"completed":   PostCompleted,
+	"declined":    PostDeclined,
+	"planned":     PostPlanned,
+	"duplicate":   PostDuplicate,
+	"deleted":     PostDeleted,
+	"underreview": PostUnderReview,
 }
 
 // MarshalText returns the Text version of the post status

@@ -396,6 +396,7 @@ func findSimilarPosts(ctx context.Context, q *query.FindSimilarPosts) error {
 			`, innerQuery, whereParts, score)
 			err = trx.Select(&posts, sql, tenant.ID, pq.Array([]enum.PostStatus{
 				enum.PostOpen,
+				enum.PostUnderReview,
 				enum.PostStarted,
 				enum.PostPlanned,
 				enum.PostCompleted,

@@ -72,6 +72,17 @@ func TestSetResponse_InvalidStatus(t *testing.T) {
 	ExpectFailed(result, "status")
 }
 
+func TestSetResponse_UnderReviewIsValid(t *testing.T) {
+	RegisterT(t)
+
+	action := &actions.SetResponse{
+		Status: enum.PostUnderReview,
+		Text:   "Assessing scope with the maintainers.",
+	}
+	result := action.Validate(context.Background(), nil)
+	ExpectSuccess(result)
+}
+
 func TestDeletePost_WhenIsBeingReferenced(t *testing.T) {
 	RegisterT(t)
 

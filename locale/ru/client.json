@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Открыто",
   "enum.poststatus.planned": "Запланировано",
   "enum.poststatus.started": "Начато",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Если вы считаете, что это ошибка, пожалуйста, свяжитесь со своим администратором.",
   "error.accessdenied.text": "У вас нет необходимых прав для доступа к этому сайту.",
   "error.accessdenied.title": "Доступ запрещен",

@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Aberto",
   "enum.poststatus.planned": "Planejado",
   "enum.poststatus.started": "Iniciado",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Se você acredita que isso é um erro, entre em contato com o administrador.",
   "error.accessdenied.text": "Você não possui as permissões necessárias para acessar este site.",
   "error.accessdenied.title": "Acesso negado",

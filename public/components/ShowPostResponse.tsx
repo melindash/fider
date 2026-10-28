@@ -68,6 +68,8 @@ const getLozengeProps = (status: PostStatus): { icon: SpriteSymbol; bg: string; 
       return { icon: HeroIconDuplicate, bg: "bg-yellow-100", color: "text-yellow-800", border: "border-yellow-400" }
     case PostStatus.Completed:
       return { icon: HeroIconCheck, bg: "bg-green-100", color: "text-green-800", border: "border-green-400" }
+    case PostStatus.UnderReview:
+      return { icon: HeroIconLightBulb, bg: "bg-yellow-100", color: "text-yellow-800", border: "border-yellow-400" }
     case PostStatus.Planned:
       return { icon: HeroIconThumbsUp, bg: "bg-blue-100", color: "text-blue-700", border: "border-blue-400" }
     case PostStatus.Started:
@@ -83,6 +85,8 @@ const getStatusTranslation = (status: PostStatus): JSX.Element => {
   switch (status) {
     case PostStatus.Open:
       return <Trans id="enum.poststatus.open">Open</Trans>
+    case PostStatus.UnderReview:
+      return <Trans id="enum.poststatus.underreview">Under review</Trans>
     case PostStatus.Planned:
       return <Trans id="enum.poststatus.planned">Planned</Trans>
     case PostStatus.Started:

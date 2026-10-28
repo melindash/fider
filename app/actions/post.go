@@ -260,7 +260,7 @@ func (action *SetResponse) IsAuthorized(ctx context.Context, user *entity.User) 
 func (action *SetResponse) Validate(ctx context.Context, user *entity.User) *validate.Result {
 	result := validate.Success()
 
-	if action.Status < enum.PostOpen || action.Status > enum.PostDuplicate {
+	if (action.Status < enum.PostOpen || action.Status > enum.PostDuplicate) && action.Status != enum.PostUnderReview {
 		result.AddFieldFailure("status", propertyIsInvalid(ctx, "status"))
 	}
 

@@ -78,5 +78,6 @@
   "feed.comment.response": "Response by {author}",
   "feed.post.title": "# {title}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}}\n\n---\n",
   "feed.post.footer.response": "Response by {responder} on {date}:\n\n>{response}\n",
-  "feed.post.footer": "\n\n---\n{response_footer}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}} - view [in the web]({web_link}) or [as a feed]({feed_link})"
+  "feed.post.footer": "\n\n---\n{response_footer}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}} - view [in the web]({web_link}) or [as a feed]({feed_link})",
+  "enum.poststatus.underreview": "Under review"
 }

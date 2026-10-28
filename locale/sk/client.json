@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Otvorené",
   "enum.poststatus.planned": "Plánované",
   "enum.poststatus.started": "Začaté",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Ak si myslíte, že ide o chybu, kontaktujte svojho administrátora.",
   "error.accessdenied.text": "Nemáte potrebné oprávnenia na prístup k tejto stránke.",
   "error.accessdenied.title": "Prístup zamietnutý",

@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Open",
   "enum.poststatus.planned": "Gepland",
   "enum.poststatus.started": "Gestart",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Als u denkt dat dit een fout is, neem dan contact op met uw beheerder.",
   "error.accessdenied.text": "U beschikt niet over de vereiste machtigingen om deze site te bezoeken.",
   "error.accessdenied.title": "Toegang geweigerd",

@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Açık",
   "enum.poststatus.planned": "Planlandı",
   "enum.poststatus.started": "Başlatıldı",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Bunun bir hata olduğunu düşünüyorsanız, lütfen yöneticinizle iletişime geçin.",
   "error.accessdenied.text": "Bu siteye erişmek için gerekli izinlere sahip değilsiniz.",
   "error.accessdenied.title": "Erişim engellendi",

@@ -27,6 +27,7 @@ export class PostStatus {
   ) {}
 
   public static Open = new PostStatus("Open", "open", false, false, true)
+  public static UnderReview = new PostStatus("Under review", "underreview", true, false, true)
   public static Planned = new PostStatus("Planned", "planned", true, false, true)
   public static Started = new PostStatus("Started", "started", true, false, true)
   public static Completed = new PostStatus("Completed", "completed", true, true, true)
@@ -43,7 +44,7 @@ export class PostStatus {
     throw new Error(`PostStatus not found for value ${value}.`)
   }
 
-  public static All = [PostStatus.Open, PostStatus.Planned, PostStatus.Started, PostStatus.Completed, PostStatus.Duplicate, PostStatus.Declined]
+  public static All = [PostStatus.Open, PostStatus.UnderReview, PostStatus.Planned, PostStatus.Started, PostStatus.Completed, PostStatus.Duplicate, PostStatus.Declined]
 }
 
 export interface PostResponse {

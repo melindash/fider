@@ -30,6 +30,7 @@
   "enum.poststatus.open": "باز",
   "enum.poststatus.planned": "برنامه‌ریزی شده",
   "enum.poststatus.started": "شروع شده",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "اگر فکر می‌کنید این یک خطا است، لطفاً با مدیر خود تماس بگیرید.",
   "error.accessdenied.text": "شما مجوزهای لازم برای دسترسی به این سایت را ندارید.",
   "error.accessdenied.title": "دسترسی رد شد",

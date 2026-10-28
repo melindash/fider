@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Öppen",
   "enum.poststatus.planned": "Planerad",
   "enum.poststatus.started": "Startad",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Om du tror att detta är ett fel, vänligen kontakta din administratör.",
   "error.accessdenied.text": "Du har inte de behörigheter som krävs för att komma åt den här webbplatsen.",
   "error.accessdenied.title": "Åtkomst nekad",

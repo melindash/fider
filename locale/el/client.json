@@ -30,6 +30,7 @@
   "enum.poststatus.open": "Άνοιγμα",
   "enum.poststatus.planned": "Προγραμματισμένο",
   "enum.poststatus.started": "Ξεκίνησε",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "Εάν πιστεύετε ότι πρόκειται για σφάλμα, επικοινωνήστε με τον διαχειριστή σας.",
   "error.accessdenied.text": "Δεν έχετε τα απαραίτητα δικαιώματα πρόσβασης σε αυτόν τον ιστότοπο.",
   "error.accessdenied.title": "Δεν επιτρέπεται η πρόσβαση",

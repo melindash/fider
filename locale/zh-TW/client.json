@@ -30,6 +30,7 @@
   "enum.poststatus.open": "開放中",
   "enum.poststatus.planned": "計劃中",
   "enum.poststatus.started": "進行中",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "如果您認為這是一個錯誤，請聯絡您的管理員。",
   "error.accessdenied.text": "您沒有存取此網站的必要權限。",
   "error.accessdenied.title": "拒絕訪問",

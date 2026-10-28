@@ -30,6 +30,7 @@
   "enum.poststatus.open": "開く",
   "enum.poststatus.planned": "準備中",
   "enum.poststatus.started": "開始済み",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "これがエラーだと思われる場合は、システム管理者にご連絡ください。",
   "error.accessdenied.text": "このサイトにアクセスするための権限がありません。",
   "error.accessdenied.title": "アクセスが拒否されました",

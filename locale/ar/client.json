@@ -30,6 +30,7 @@
   "enum.poststatus.open": "فتح",
   "enum.poststatus.planned": "مخطط",
   "enum.poststatus.started": "بدأت",
+  "enum.poststatus.underreview": "",
   "error.accessdenied.contact": "إذا كنت تعتقد أن هذا خطأ، فيرجى الاتصال بمسؤول النظام.",
   "error.accessdenied.text": "ليس لديك الصلاحيات المطلوبة للوصول إلى هذا الموقع.",
   "error.accessdenied.title": "تم الرفض",
