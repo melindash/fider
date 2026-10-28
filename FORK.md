@@ -60,6 +60,8 @@ GitHub webhook setup (after approval): repository or organization â†’ Settings â
 
 ## Updating from upstream
 
+`.github/workflows/mageos-upstream.yml` trial-merges the latest upstream release and upstream `main` into `mage-os` every Monday, on every push to `mage-os`, and on demand, then runs UI lint, UI tests and server tests on the result. It pushes nothing. A red `latest-release` run means the next merge needs work; `main` is an early warning and never fails the workflow. The step summary lists conflicting files.
+
 1. `git fetch upstream --tags && git switch mage-os && git merge <upstream-tag>`.
 2. Resolve conflicts at the seams listed above.
 3. Run tests the way the Makefile does: `docker compose up -d pgtest`, `make build-server build-ssr build-ui`, `godotenv -f .test.env ./fider migrate`, `godotenv -f .test.env go test ./... -short`, `TZ=GMT npx jest ./public`, `make lint`.

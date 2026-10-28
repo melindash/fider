@@ -1,0 +1,98 @@
+name: mageos-upstream
+
+# Trial-merges upstream Fider into the mage-os branch and runs the test suites on the result.
+# Nothing is pushed; a failed run means the next upstream merge needs attention.
+# Scheduled-run failures are emailed to whoever last edited the cron line.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+  push:
+    branches:
+      - mage-os
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    # main is an early warning only; releases are what we merge.
+    continue-on-error: ${{ matrix.target == 'main' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [latest-release, main]
+    services:
+      minio:
+        image: getfider/minio:0.0.2
+        ports:
+          - 9000:9000
+        env:
+          MINIO_ACCESS_KEY: s3user
+          MINIO_SECRET_KEY: s3user-s3cr3t
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: fider_ci
+          POSTGRES_PASSWORD: fider_ci_pw
+          POSTGRES_DB: fider_ci
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Trial merge upstream
+        id: merge
+        run: |
+          git remote add upstream https://github.com/getfider/fider.git
+          git fetch --quiet upstream main --tags
+          if [ "${{ matrix.target }}" = main ]; then
+            ref=upstream/main
+          else
+            ref=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          fi
+          echo "Target: $ref ($(git rev-parse --short "$ref"))"
+          if git merge-base --is-ancestor "$ref" HEAD; then
+            echo "Already contains $ref." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          git -c user.name=ci -c user.email=ci@localhost merge --no-edit --no-ff "$ref" || {
+            echo "### Merge conflicts with $ref" >> "$GITHUB_STEP_SUMMARY"
+            git diff --name-only --diff-filter=U | sed 's/^/- /' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+          echo "Merged $ref cleanly." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Use Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22.x
+          cache: 'npm'
+      - run: npm ci
+      - name: install godotenv
+        run: go install github.com/joho/godotenv/cmd/godotenv
+
+      - run: make lint-ui
+      - run: make test-ui
+      - name: make test-server
+        run: |
+          mkdir -p ./dist
+          make test-server SHORT=false
+        env:
+          BLOB_STORAGE_S3_ENDPOINT_URL: http://localhost:9000
+          DATABASE_URL: postgres://fider_ci:fider_ci_pw@localhost:5432/fider_ci?sslmode=disable
