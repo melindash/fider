@@ -13,7 +13,7 @@ import IconChat from "@fider/assets/images/heroicons-chat-alt-2.svg"
 import { ResponseDetails, Button, UserName, Moment, Markdown, Input, Form, Icon, Avatar, PoweredByFider, RSSModal, ResponseLozenge } from "@fider/components"
 import { CommentInput } from "@fider/pages/ShowPost/components/CommentInput"
 import { ShowComment } from "@fider/pages/ShowPost/components/ShowComment"
-import { VoteSection } from "@fider/pages/ShowPost/components/VoteSection"
+import { VoteSection } from "@fider/components/mageos/VoteSection"
 import CommentEditor from "@fider/components/common/form/CommentEditor"
 
 import IconX from "@fider/assets/images/heroicons-x.svg"
