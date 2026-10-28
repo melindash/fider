@@ -1,0 +1,8 @@
+[Unit]
+Description=Mage-OS ideas board database backup
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/mage-os-ideas
+ExecStart=/opt/mage-os-ideas/backup.sh

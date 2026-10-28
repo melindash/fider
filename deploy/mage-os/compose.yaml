@@ -1,0 +1,66 @@
+# Mage-OS ideas board. No host ports are published: Cloudflare Tunnel makes an outbound
+# connection, so the server firewall stays SSH-only.
+name: mage-os-ideas
+
+services:
+  db:
+    image: ${POSTGRES_IMAGE:?Set POSTGRES_IMAGE}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fider
+      POSTGRES_DB: fider
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fider -d fider']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  app:
+    image: ${FIDER_IMAGE:?Set FIDER_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      BASE_URL: https://${FIDER_DOMAIN:?Set FIDER_DOMAIN}
+      DATABASE_URL: postgres://fider:${POSTGRES_PASSWORD}@db:5432/fider?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      BLOB_STORAGE: sql
+      LOG_CONSOLE: 'true'
+      LOG_LEVEL: INFO
+      EMAIL_NOREPLY: ${EMAIL_NOREPLY:?Set EMAIL_NOREPLY}
+      EMAIL_SMTP_HOST: ${EMAIL_SMTP_HOST:?Set EMAIL_SMTP_HOST}
+      EMAIL_SMTP_PORT: ${EMAIL_SMTP_PORT:-587}
+      EMAIL_SMTP_USERNAME: ${EMAIL_SMTP_USERNAME:?Set EMAIL_SMTP_USERNAME}
+      EMAIL_SMTP_PASSWORD: ${EMAIL_SMTP_PASSWORD:?Set EMAIL_SMTP_PASSWORD}
+      EMAIL_SMTP_ENABLE_STARTTLS: 'true'
+      # Mage-OS fork settings (see FORK.md)
+      MAGEOS_CLIENT_IP_HEADER: CF-Connecting-IP
+      MAGEOS_ANONYMOUS_VOTING: ${MAGEOS_ANONYMOUS_VOTING:-true}
+      MAGEOS_NEW_VOTERS_PER_NETWORK_PER_HOUR: ${MAGEOS_NEW_VOTERS_PER_NETWORK_PER_HOUR:-60}
+      MAGEOS_VOTES_PER_NETWORK_PER_HOUR: ${MAGEOS_VOTES_PER_NETWORK_PER_HOUR:-600}
+      MAGEOS_VOTES_PER_VOTER_PER_MINUTE: ${MAGEOS_VOTES_PER_VOTER_PER_MINUTE:-30}
+      MAGEOS_VOTES_PER_NETWORK_PER_POST_PER_DAY: ${MAGEOS_VOTES_PER_NETWORK_PER_POST_PER_DAY:-25}
+      MAGEOS_GITHUB_WEBHOOK_SECRET: ${MAGEOS_GITHUB_WEBHOOK_SECRET:-}
+      MAGEOS_GITHUB_AUTO_STATUS: ${MAGEOS_GITHUB_AUTO_STATUS:-false}
+    networks: [internal]
+
+  tunnel:
+    image: ${CLOUDFLARED_IMAGE:?Set CLOUDFLARED_IMAGE}
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - app
+    networks: [internal]
+
+volumes:
+  postgres_data:
+
+networks:
+  internal:
