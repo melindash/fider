@@ -25,3 +25,16 @@ type MageOSVoteBurst struct {
 	FirstVoteAt time.Time `json:"firstVoteAt" db:"first_vote_at"`
 	LastVoteAt  time.Time `json:"lastVoteAt" db:"last_vote_at"`
 }
+
+// MageOSPostLink connects an idea to a GitHub discussion, issue or pull request.
+type MageOSPostLink struct {
+	ID           int        `json:"id" db:"id"`
+	Kind         string     `json:"kind" db:"kind"`
+	URL          string     `json:"url" db:"url"`
+	Repo         string     `json:"repo" db:"repo"`
+	Number       int        `json:"number" db:"number"`
+	IsSource     bool       `json:"isSource" db:"is_source"`
+	Attribution  string     `json:"attribution,omitempty" db:"attribution"`
+	State        string     `json:"state,omitempty" db:"state"`
+	LastSyncedAt *time.Time `json:"lastSyncedAt,omitempty" db:"-"`
+}

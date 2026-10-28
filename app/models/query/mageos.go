@@ -32,3 +32,9 @@ type MageOSListVoteBursts struct {
 
 	Result []*entity.MageOSVoteBurst
 }
+
+type MageOSListPostLinks struct {
+	PostID int
+
+	Result []*entity.MageOSPostLink
+}

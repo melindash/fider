@@ -76,6 +76,7 @@ func routes(r *web.Engine) *web.Engine {
 	stripeWh := r.Group()
 	{
 		stripeWh.Post("/webhooks/stripe", webhooks.IncomingStripeWebhook())
+		stripeWh.Post("/webhooks/github", webhooks.IncomingGitHubWebhook())
 	}
 
 	r.Use(middlewares.CSRF())
@@ -254,6 +255,7 @@ func routes(r *web.Engine) *web.Engine {
 	mageosApi := r.Group()
 	{
 		mageosApi.Get("/api/v1/mageos/participant", apiv1.GetParticipant())
+		mageosApi.Get("/api/v1/posts/:number/links", apiv1.ListPostLinks())
 		mageosApi.Use(middlewares.BlockLockedTenants())
 		mageosApi.Post("/api/v1/posts/:number/anonymous-vote", apiv1.AddAnonymousVote())
 		mageosApi.Delete("/api/v1/posts/:number/anonymous-vote", apiv1.RemoveAnonymousVote())
@@ -263,6 +265,8 @@ func routes(r *web.Engine) *web.Engine {
 		mageosApi.Use(middlewares.IsAuthorized(enum.RoleCollaborator, enum.RoleAdministrator))
 		mageosApi.Get("/api/v1/mageos/participation", apiv1.GetParticipationByRole())
 		mageosApi.Get("/api/v1/mageos/vote-bursts", apiv1.ListVoteBursts())
+		mageosApi.Post("/api/v1/posts/:number/links", apiv1.AddPostLink())
+		mageosApi.Delete("/api/v1/posts/:number/links/:id", apiv1.DeletePostLink())
 
 		mageosApi.Use(middlewares.IsAuthorized(enum.RoleAdministrator))
 		mageosApi.Post("/api/v1/mageos/vote-bursts/void", apiv1.VoidVoteBurst())

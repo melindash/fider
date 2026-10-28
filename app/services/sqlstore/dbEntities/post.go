@@ -11,31 +11,33 @@ import (
 )
 
 type Post struct {
-	ID               int            `db:"id"`
-	Number           int            `db:"number"`
-	Title            string         `db:"title"`
-	Slug             string         `db:"slug"`
-	Description      string         `db:"description"`
-	CreatedAt        time.Time      `db:"created_at"`
-	Search           []byte         `db:"search"`
-	User             *User          `db:"user"`
-	HasVoted         bool           `db:"has_voted"`
-	VotesCount       int            `db:"votes_count"`
+	ID             int            `db:"id"`
+	Number         int            `db:"number"`
+	Title          string         `db:"title"`
+	Slug           string         `db:"slug"`
+	Description    string         `db:"description"`
+	CreatedAt      time.Time      `db:"created_at"`
+	Search         []byte         `db:"search"`
+	User           *User          `db:"user"`
+	HasVoted       bool           `db:"has_voted"`
+	VotesCount     int            `db:"votes_count"`
+	CommentsCount  int            `db:"comments_count"`
+	RecentVotes    int            `db:"recent_votes_count"`
+	RecentComments int            `db:"recent_comments_count"`
+	Status         int            `db:"status"`
+	Response       dbx.NullString `db:"response"`
+	RespondedAt    dbx.NullTime   `db:"response_date"`
+	ResponseUser   *User          `db:"response_user"`
+	OriginalNumber dbx.NullInt    `db:"original_number"`
+	OriginalTitle  dbx.NullString `db:"original_title"`
+	OriginalSlug   dbx.NullString `db:"original_slug"`
+	OriginalStatus dbx.NullInt    `db:"original_status"`
+	Tags           pq.StringArray `db:"tags"`
+	IsApproved     bool           `db:"is_approved"`
+
+	// Mage-OS fork: votes carried over from GitHub discussions.
 	HistoricalVotes  int            `db:"historical_votes_count"`
 	HistoricalSource dbx.NullString `db:"historical_source"`
-	CommentsCount    int            `db:"comments_count"`
-	RecentVotes      int            `db:"recent_votes_count"`
-	RecentComments   int            `db:"recent_comments_count"`
-	Status           int            `db:"status"`
-	Response         dbx.NullString `db:"response"`
-	RespondedAt      dbx.NullTime   `db:"response_date"`
-	ResponseUser     *User          `db:"response_user"`
-	OriginalNumber   dbx.NullInt    `db:"original_number"`
-	OriginalTitle    dbx.NullString `db:"original_title"`
-	OriginalSlug     dbx.NullString `db:"original_slug"`
-	OriginalStatus   dbx.NullInt    `db:"original_status"`
-	Tags             pq.StringArray `db:"tags"`
-	IsApproved       bool           `db:"is_approved"`
 }
 
 func (i *Post) ToModel(ctx context.Context) *entity.Post {

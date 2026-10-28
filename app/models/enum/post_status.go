@@ -22,24 +22,26 @@ var (
 	PostUnderReview PostStatus = 7
 )
 var postStatusIDs = map[PostStatus]string{
-	PostOpen:        "open",
-	PostStarted:     "started",
-	PostCompleted:   "completed",
-	PostDeclined:    "declined",
-	PostPlanned:     "planned",
-	PostDuplicate:   "duplicate",
-	PostDeleted:     "deleted",
+	PostOpen:      "open",
+	PostStarted:   "started",
+	PostCompleted: "completed",
+	PostDeclined:  "declined",
+	PostPlanned:   "planned",
+	PostDuplicate: "duplicate",
+	PostDeleted:   "deleted",
+
 	PostUnderReview: "underreview",
 }
 
 var postStatusNames = map[string]PostStatus{
-	"open":        PostOpen,
-	"started":     PostStarted,
-	"completed":   PostCompleted,
-	"declined":    PostDeclined,
-	"planned":     PostPlanned,
-	"duplicate":   PostDuplicate,
-	"deleted":     PostDeleted,
+	"open":      PostOpen,
+	"started":   PostStarted,
+	"completed": PostCompleted,
+	"declined":  PostDeclined,
+	"planned":   PostPlanned,
+	"duplicate": PostDuplicate,
+	"deleted":   PostDeleted,
+
 	"underreview": PostUnderReview,
 }
 

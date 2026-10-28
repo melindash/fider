@@ -47,6 +47,7 @@ func registerMageOSHandlers() {
 	bus.AddHandler(mageosListVoteBursts)
 	bus.AddHandler(mageosVoidAnonymousVotes)
 	bus.AddHandler(mageosPurgeNetworkHashes)
+	registerMageOSLinkHandlers()
 }
 
 const mageosVoterColumns = `id, roles, roles_prompted_at, merged_into_user_id`
@@ -295,5 +296,122 @@ func mageosPurgeNetworkHashes(ctx context.Context, c *cmd.MageOSPurgeNetworkHash
 		}
 		c.Cleared = int(cleared)
 		return nil
+	})
+}
+
+func registerMageOSLinkHandlers() {
+	bus.AddHandler(mageosListPostLinks)
+	bus.AddHandler(mageosAddPostLink)
+	bus.AddHandler(mageosDeletePostLink)
+	bus.AddHandler(mageosRecordGitHubDelivery)
+	bus.AddHandler(mageosSetGitHubDeliveryOutcome)
+	bus.AddHandler(mageosApplyGitHubState)
+}
+
+type dbMageOSPostLink struct {
+	ID          int            `db:"id"`
+	Kind        string         `db:"kind"`
+	URL         string         `db:"url"`
+	Repo        string         `db:"repo"`
+	Number      int            `db:"number"`
+	IsSource    bool           `db:"is_source"`
+	Attribution dbx.NullString `db:"attribution"`
+	State       dbx.NullString `db:"state"`
+	SyncedAt    dbx.NullTime   `db:"last_synced_at"`
+}
+
+func mageosListPostLinks(ctx context.Context, q *query.MageOSListPostLinks) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		rows := []*dbMageOSPostLink{}
+		err := trx.Select(&rows, `
+			SELECT id, kind, url, repo, number, is_source, attribution, state, last_synced_at
+			FROM mageos_post_links WHERE tenant_id = $1 AND post_id = $2
+			ORDER BY is_source DESC, created_at`, tenant.ID, q.PostID)
+		if err != nil {
+			return errors.Wrap(err, "failed to list post links")
+		}
+		q.Result = make([]*entity.MageOSPostLink, len(rows))
+		for i, r := range rows {
+			link := &entity.MageOSPostLink{ID: r.ID, Kind: r.Kind, URL: r.URL, Repo: r.Repo, Number: r.Number, IsSource: r.IsSource, Attribution: r.Attribution.String, State: r.State.String}
+			if r.SyncedAt.Valid {
+				link.LastSyncedAt = &r.SyncedAt.Time
+			}
+			q.Result[i] = link
+		}
+		return nil
+	})
+}
+
+func mageosAddPostLink(ctx context.Context, c *cmd.MageOSAddPostLink) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		var createdBy any
+		if user != nil {
+			createdBy = user.ID
+		}
+		row := dbMageOSPostLink{}
+		err := trx.Get(&row, `
+			INSERT INTO mageos_post_links (tenant_id, post_id, kind, url, repo, number, is_source, attribution, created_by_id)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, NULLIF($8, ''), $9)
+			ON CONFLICT (tenant_id, post_id, url) DO UPDATE SET is_source = EXCLUDED.is_source, attribution = EXCLUDED.attribution
+			RETURNING id, kind, url, repo, number, is_source, attribution, state, last_synced_at`,
+			tenant.ID, c.Post.ID, c.Kind, c.URL, c.Repo, c.Number, c.IsSource, c.Attribution, createdBy)
+		if err != nil {
+			return errors.Wrap(err, "failed to add post link")
+		}
+		c.Result = &entity.MageOSPostLink{ID: row.ID, Kind: row.Kind, URL: row.URL, Repo: row.Repo, Number: row.Number, IsSource: row.IsSource, Attribution: row.Attribution.String, State: row.State.String}
+		return nil
+	})
+}
+
+func mageosDeletePostLink(ctx context.Context, c *cmd.MageOSDeletePostLink) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		_, err := trx.Execute(`DELETE FROM mageos_post_links WHERE tenant_id = $1 AND post_id = $2 AND id = $3`, tenant.ID, c.Post.ID, c.LinkID)
+		if err != nil {
+			return errors.Wrap(err, "failed to delete post link")
+		}
+		return nil
+	})
+}
+
+func mageosRecordGitHubDelivery(ctx context.Context, c *cmd.MageOSRecordGitHubDelivery) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		inserted, err := trx.Execute(`INSERT INTO mageos_github_deliveries (delivery_id, event) VALUES ($1, $2) ON CONFLICT DO NOTHING`, c.DeliveryID, c.Event)
+		if err != nil {
+			return errors.Wrap(err, "failed to record github delivery")
+		}
+		c.Duplicate = inserted == 0
+		return nil
+	})
+}
+
+func mageosSetGitHubDeliveryOutcome(ctx context.Context, c *cmd.MageOSSetGitHubDeliveryOutcome) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		_, err := trx.Execute(`UPDATE mageos_github_deliveries SET outcome = $2 WHERE delivery_id = $1`, c.DeliveryID, c.Outcome)
+		if err != nil {
+			return errors.Wrap(err, "failed to record github delivery outcome")
+		}
+		return nil
+	})
+}
+
+func mageosApplyGitHubState(ctx context.Context, c *cmd.MageOSApplyGitHubState) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		c.PostIDs = []int{}
+		rows, err := trx.Query(`
+			UPDATE mageos_post_links SET state = $5, last_synced_at = now()
+			WHERE tenant_id = $1 AND repo = $2 AND number = $3 AND kind = $4
+			RETURNING post_id`, tenant.ID, c.Repo, c.Number, c.Kind, c.State)
+		if err != nil {
+			return errors.Wrap(err, "failed to apply github state")
+		}
+		defer func() { _ = rows.Close() }()
+		for rows.Next() {
+			var postID int
+			if err := rows.Scan(&postID); err != nil {
+				return errors.Wrap(err, "failed to read linked post")
+			}
+			c.PostIDs = append(c.PostIDs, postID)
+		}
+		return rows.Err()
 	})
 }

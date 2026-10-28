@@ -64,3 +64,43 @@ type MageOSPurgeNetworkHashes struct {
 
 	Cleared int
 }
+
+type MageOSAddPostLink struct {
+	Post        *entity.Post
+	Kind        string
+	URL         string
+	Repo        string
+	Number      int
+	IsSource    bool
+	Attribution string
+
+	Result *entity.MageOSPostLink
+}
+
+type MageOSDeletePostLink struct {
+	Post   *entity.Post
+	LinkID int
+}
+
+// MageOSRecordGitHubDelivery stores a webhook delivery ID; Duplicate is true if it was seen before.
+type MageOSRecordGitHubDelivery struct {
+	DeliveryID string
+	Event      string
+
+	Duplicate bool
+}
+
+type MageOSSetGitHubDeliveryOutcome struct {
+	DeliveryID string
+	Outcome    string
+}
+
+// MageOSApplyGitHubState updates every implementation link to repo#number and returns the affected post IDs.
+type MageOSApplyGitHubState struct {
+	Repo   string
+	Number int
+	Kind   string
+	State  string
+
+	PostIDs []int
+}

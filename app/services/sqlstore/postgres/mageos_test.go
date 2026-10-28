@@ -223,3 +223,47 @@ func TestMageOS_PurgeNetworkHashes(t *testing.T) {
 	Expect(purge.Cleared).Equals(1)
 	Expect(reloadPost(demoTenantCtx, newPost.Result.Number).VotesCount).Equals(1)
 }
+
+func TestMageOS_PostLinksAndGitHubState(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	newPost := &cmd.AddNewPost{Title: "Linked idea", Description: "x"}
+	bus.MustDispatch(jonSnowCtx, newPost)
+
+	source := &cmd.MageOSAddPostLink{Post: newPost.Result, Kind: mageos.LinkDiscussion, URL: "https://github.com/orgs/mage-os-lab/discussions/2", Repo: "mage-os-lab", Number: 2, IsSource: true, Attribution: "@octocat"}
+	pr := &cmd.MageOSAddPostLink{Post: newPost.Result, Kind: mageos.LinkPullRequest, URL: "https://github.com/mage-os/mageos-magento2/pull/356", Repo: "mage-os/mageos-magento2", Number: 356}
+	bus.MustDispatch(jonSnowCtx, pr, source)
+	bus.MustDispatch(jonSnowCtx, &cmd.MageOSAddPostLink{Post: newPost.Result, Kind: pr.Kind, URL: pr.URL, Repo: pr.Repo, Number: pr.Number})
+
+	list := &query.MageOSListPostLinks{PostID: newPost.Result.ID}
+	bus.MustDispatch(demoTenantCtx, list)
+	Expect(list.Result).HasLen(2)
+	Expect(list.Result[0].IsSource).IsTrue()
+	Expect(list.Result[0].Attribution).Equals("@octocat")
+
+	apply := &cmd.MageOSApplyGitHubState{Repo: "mage-os/mageos-magento2", Number: 356, Kind: mageos.LinkPullRequest, State: "merged"}
+	bus.MustDispatch(demoTenantCtx, apply)
+	Expect(apply.PostIDs).Equals([]int{newPost.Result.ID})
+
+	unrelated := &cmd.MageOSApplyGitHubState{Repo: "mage-os/mageos-magento2", Number: 356, Kind: mageos.LinkIssue, State: "closed"}
+	bus.MustDispatch(demoTenantCtx, unrelated)
+	Expect(unrelated.PostIDs).HasLen(0)
+
+	bus.MustDispatch(demoTenantCtx, list)
+	Expect(list.Result[1].State).Equals("merged")
+	Expect(reloadPost(demoTenantCtx, newPost.Result.Number).Status.Name()).Equals("open")
+}
+
+func TestMageOS_GitHubDeliveryIsProcessedOnce(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	first := &cmd.MageOSRecordGitHubDelivery{DeliveryID: "abc-123", Event: "pull_request"}
+	bus.MustDispatch(demoTenantCtx, first)
+	Expect(first.Duplicate).IsFalse()
+
+	retry := &cmd.MageOSRecordGitHubDelivery{DeliveryID: "abc-123", Event: "pull_request"}
+	bus.MustDispatch(demoTenantCtx, retry)
+	Expect(retry.Duplicate).IsTrue()
+}

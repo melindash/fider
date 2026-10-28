@@ -33,3 +33,21 @@ export const removeAnonymousVote = (postNumber: number) => send<unknown>(`/api/v
 export const getParticipant = () => send<Participant>("/api/v1/mageos/participant", "GET")
 
 export const setParticipantRoles = (roles: string[]) => send<{ message?: string }>("/api/v1/mageos/participant/roles", "PUT", { roles })
+
+export interface PostLink {
+  id: number
+  kind: "discussion" | "issue" | "pull_request"
+  url: string
+  repo: string
+  number: number
+  isSource: boolean
+  attribution?: string
+  state?: string
+}
+
+export const listPostLinks = (postNumber: number) => send<PostLink[]>(`/api/v1/posts/${postNumber}/links`, "GET")
+
+export const addPostLink = (postNumber: number, url: string, isSource: boolean, attribution: string) =>
+  send<PostLink & { message?: string }>(`/api/v1/posts/${postNumber}/links`, "POST", { url, isSource, attribution })
+
+export const deletePostLink = (postNumber: number, linkID: number) => send<unknown>(`/api/v1/posts/${postNumber}/links/${linkID}`, "DELETE")

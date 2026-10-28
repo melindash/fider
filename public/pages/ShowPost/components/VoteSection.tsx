@@ -2,6 +2,7 @@ import React, { useState } from "react"
 import { Post, PostStatus } from "@fider/models"
 import { Button, Icon, SignInModal } from "@fider/components"
 import { ParticipantRolesModal } from "@fider/components/mageos/ParticipantRolesModal"
+import { PostLinks } from "@fider/components/mageos/PostLinks"
 import { useFider, useMageOSVote } from "@fider/hooks"
 import IconThumbsUp from "@fider/assets/images/heroicons-thumbsup.svg"
 import IconCheck from "@fider/assets/images/heroicons-check.svg"
@@ -80,6 +81,7 @@ export const VoteSection = (props: VoteSectionProps) => {
         <Button variant="link" onClick={() => setIsEditingRoles(true)} className="align-self-start text-sm">
           <Trans id="mageos.roles.edit">Your roles (optional)</Trans>
         </Button>
+        <PostLinks postNumber={props.post.number} />
       </VStack>
     </>
   )
