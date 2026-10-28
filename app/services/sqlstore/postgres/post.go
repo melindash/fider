@@ -21,6 +21,7 @@ import (
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/pkg/dbx"
 	"github.com/getfider/fider/app/pkg/errors"
+	"github.com/getfider/fider/app/pkg/mageos"
 	"github.com/getfider/fider/app/services/sqlstore/dbEntities"
 )
 
@@ -56,7 +57,11 @@ var (
 															post_id,
 																	COUNT(CASE WHEN post_votes.created_at > CURRENT_DATE - INTERVAL '30 days'  THEN 1 END) as recent,
 																	COUNT(*) as all
-															FROM post_votes
+															FROM (
+																SELECT post_id, tenant_id, created_at FROM post_votes
+																UNION ALL
+																SELECT post_id, tenant_id, created_at FROM mageos_anonymous_votes
+															) post_votes
 															INNER JOIN posts
 															ON posts.id = post_votes.post_id
 															AND posts.tenant_id = post_votes.tenant_id
@@ -70,7 +75,9 @@ var (
 																p.description,
 																p.created_at,
 																p.search,
-																COALESCE(agg_s.all, 0) as votes_count,
+																COALESCE(agg_s.all, 0) + p.mageos_historical_votes as votes_count,
+																p.mageos_historical_votes AS historical_votes_count,
+																p.mageos_historical_source AS historical_source,
 																COALESCE(agg_c.all, 0) as comments_count,
 																COALESCE(agg_s.recent, 0) AS recent_votes_count,
 																COALESCE(agg_c.recent, 0) AS recent_comments_count,
@@ -305,7 +312,7 @@ func detectPostLanguage(title, description string) string {
 
 func getPostByID(ctx context.Context, q *query.GetPostByID) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		post, err := querySinglePost(ctx, trx, buildSinglePostQuery(user, "p.tenant_id = $1 AND p.id = $2"), tenant.ID, q.PostID)
+		post, err := querySinglePost(ctx, trx, buildSinglePostQuery(user, mageos.VoterIDFromContext(ctx), "p.tenant_id = $1 AND p.id = $2"), tenant.ID, q.PostID)
 		if err != nil {
 			return errors.Wrap(err, "failed to get post with id '%d'", q.PostID)
 		}
@@ -316,7 +323,7 @@ func getPostByID(ctx context.Context, q *query.GetPostByID) error {
 
 func getPostBySlug(ctx context.Context, q *query.GetPostBySlug) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		post, err := querySinglePost(ctx, trx, buildSinglePostQuery(user, "p.tenant_id = $1 AND p.slug = $2"), tenant.ID, q.Slug)
+		post, err := querySinglePost(ctx, trx, buildSinglePostQuery(user, mageos.VoterIDFromContext(ctx), "p.tenant_id = $1 AND p.slug = $2"), tenant.ID, q.Slug)
 		if err != nil {
 			return errors.Wrap(err, "failed to get post with slug '%s'", q.Slug)
 		}
@@ -327,7 +334,7 @@ func getPostBySlug(ctx context.Context, q *query.GetPostBySlug) error {
 
 func getPostByNumber(ctx context.Context, q *query.GetPostByNumber) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		post, err := querySinglePost(ctx, trx, buildSinglePostQuery(user, "p.tenant_id = $1 AND p.number = $2"), tenant.ID, q.Number)
+		post, err := querySinglePost(ctx, trx, buildSinglePostQuery(user, mageos.VoterIDFromContext(ctx), "p.tenant_id = $1 AND p.number = $2"), tenant.ID, q.Number)
 		if err != nil {
 			return errors.Wrap(err, "failed to get post with number '%d'", q.Number)
 		}
@@ -362,7 +369,7 @@ func preprocessSearchQuery(query string) string {
 
 func findSimilarPosts(ctx context.Context, q *query.FindSimilarPosts) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		innerQuery := buildPostQuery(user, "p.tenant_id = $1 AND p.status = ANY($2)", "")
+		innerQuery := buildPostQuery(user, mageos.VoterIDFromContext(ctx), "p.tenant_id = $1 AND p.status = ANY($2)", "")
 
 		filteredQuery := preprocessSearchQuery(q.Query)
 
@@ -417,7 +424,7 @@ func findSimilarPosts(ctx context.Context, q *query.FindSimilarPosts) error {
 
 func searchPosts(ctx context.Context, q *query.SearchPosts) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		innerQuery := buildPostQuery(user, "p.tenant_id = $1 AND p.status = ANY($2)", q.ModerationFilter)
+		innerQuery := buildPostQuery(user, mageos.VoterIDFromContext(ctx), "p.tenant_id = $1 AND p.status = ANY($2)", q.ModerationFilter)
 
 		if q.Tags == nil {
 			q.Tags = []string{}
@@ -524,7 +531,7 @@ func querySinglePost(ctx context.Context, trx *dbx.Trx, query string, args ...an
 	return post.ToModel(ctx), nil
 }
 
-func buildPostQuery(user *entity.User, filter string, moderationFilter string) string {
+func buildPostQuery(user *entity.User, anonymousVoterID int, filter string, moderationFilter string) string {
 	tagCondition := `AND tags.is_public = true`
 	if user != nil && user.IsCollaborator() {
 		tagCondition = ``
@@ -532,6 +539,8 @@ func buildPostQuery(user *entity.User, filter string, moderationFilter string) s
 	hasVotedSubQuery := "null"
 	if user != nil {
 		hasVotedSubQuery = fmt.Sprintf("(SELECT true FROM post_votes WHERE post_id = p.id AND user_id = %d)", user.ID)
+	} else if anonymousVoterID > 0 {
+		hasVotedSubQuery = fmt.Sprintf("(SELECT true FROM mageos_anonymous_votes WHERE post_id = p.id AND voter_id = %d)", anonymousVoterID)
 	}
 
 	// Add approval filtering based on moderation filter and user permissions
@@ -562,7 +571,7 @@ func buildPostQuery(user *entity.User, filter string, moderationFilter string) s
 
 // buildSinglePostQuery is used for fetching individual posts (by ID, slug, or number)
 // Collaborators can view any post for moderation purposes
-func buildSinglePostQuery(user *entity.User, filter string) string {
+func buildSinglePostQuery(user *entity.User, anonymousVoterID int, filter string) string {
 	tagCondition := `AND tags.is_public = true`
 	if user != nil && user.IsCollaborator() {
 		tagCondition = ``
@@ -570,6 +579,8 @@ func buildSinglePostQuery(user *entity.User, filter string) string {
 	hasVotedSubQuery := "null"
 	if user != nil {
 		hasVotedSubQuery = fmt.Sprintf("(SELECT true FROM post_votes WHERE post_id = p.id AND user_id = %d)", user.ID)
+	} else if anonymousVoterID > 0 {
+		hasVotedSubQuery = fmt.Sprintf("(SELECT true FROM mageos_anonymous_votes WHERE post_id = p.id AND voter_id = %d)", anonymousVoterID)
 	}
 
 	// Approval filtering for single post views

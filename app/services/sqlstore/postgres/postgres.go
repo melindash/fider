@@ -31,6 +31,8 @@ func (s Service) Enabled() bool {
 func (s Service) Init() {
 	bus.AddHandler(storeEvent)
 
+	registerMageOSHandlers()
+
 	bus.AddHandler(purgeExpiredNotifications)
 
 	bus.AddHandler(markAllNotificationsAsRead)

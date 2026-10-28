@@ -64,6 +64,7 @@ func startJobs(ctx context.Context) {
 	_ = c.AddJob(jobs.NewJob(ctx, "PurgeExpiredNotificationsJob", jobs.PurgeExpiredNotificationsJobHandler{}))
 	_ = c.AddJob(jobs.NewJob(ctx, "EmailSupressionJob", jobs.EmailSupressionJobHandler{}))
 	_ = c.AddJob(jobs.NewJob(ctx, "DeleteScheduledTenantsJob", jobs.DeleteScheduledTenantsJobHandler{}))
+	_ = c.AddJob(jobs.NewJob(ctx, "MageOSPurgeNetworkHashesJob", jobs.MageOSPurgeNetworkHashesJobHandler{}))
 
 	c.Start()
 }
