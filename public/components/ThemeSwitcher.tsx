@@ -7,17 +7,19 @@ import { cache } from "@fider/services/cache"
 
 type themeType = "light" | "dark"
 
+const systemTheme = (): themeType => (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+
 export const ThemeSwitcher = () => {
   // Lazy initialization of the theme state
-  const [currentTheme, setCurrentTheme] = useState<themeType>((cache.local.get("theme") as themeType) || "dark")
+  const [currentTheme, setCurrentTheme] = useState<themeType>((cache.local.get("theme") as themeType) || systemTheme())
 
   const toggleTheme = () => {
     const newTheme = currentTheme === "light" ? "dark" : "light"
+    cache.local.set("theme", newTheme)
     setCurrentTheme(newTheme)
   }
 
   useEffect(() => {
-    cache.local.set("theme", currentTheme)
     document.body.setAttribute("data-theme", currentTheme)
   }, [currentTheme])
 
