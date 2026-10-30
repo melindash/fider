@@ -30,7 +30,7 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
   return (
     <div className="r-actions">
       {props.actions.length > 0 && (
-        <table className="r-table r-table--compact">
+        <table className="r-table r-table--compact r-table--stack">
           <thead>
             <tr>
               <th scope="col">Done</th>
@@ -42,7 +42,7 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
           <tbody>
             {props.actions.map((a) => (
               <tr key={a.id} className={a.isDone ? "r-done" : ""}>
-                <td>
+                <td data-label="Done">
                   <input
                     type="checkbox"
                     aria-label={`Mark "${a.nextStep}" done`}
@@ -50,13 +50,13 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
                     onChange={(e) => update(a.id, { done: String(e.target.checked) })}
                   />
                 </td>
-                <td>
+                <td data-label="Next step">
                   <TextField label="Next step" value={a.nextStep} onSave={(v) => update(a.id, { nextStep: v })} />
                 </td>
-                <td>
+                <td data-label="Owner">
                   <TextField label="Owner" value={a.owner} placeholder="Unassigned" missing={!a.isDone} onSave={(v) => update(a.id, { owner: v })} />
                 </td>
-                <td>
+                <td data-label="Review date">
                   <label className="sr-only" htmlFor={`${prefix}-date-${a.id}`}>
                     Review date
                   </label>

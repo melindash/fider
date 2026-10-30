@@ -209,7 +209,7 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
       {visible.length === 0 ? (
         <Empty>No candidates match. Add ideas from the board or enter an initiative above.</Empty>
       ) : (
-        <table className="r-table">
+        <table className="r-table r-table--stack">
           <thead>
             <tr>
               <th scope="col">
@@ -228,24 +228,26 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
           <tbody>
             {visible.map((c) => (
               <tr key={c.id}>
-                <td>
+                <td data-label="Select">
                   <input type="checkbox" aria-label={`Select ${c.title}`} checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
                 </td>
-                <td>
+                <td data-label="Candidate">
                   <a href={`#/candidate/${c.id}`}>{c.title}</a>
                   {c.idea && <span className="r-muted"> #{c.idea.number}</span>}
                   {c.isSample && <SampleBadge />}
                 </td>
-                <td>
+                <td data-label="Track / categories">
                   {trackLabels[c.track]}
                   {c.idea && c.idea.tags.length > 0 && <div className="r-muted">{c.idea.tags.join(", ")}</div>}
                 </td>
-                <td>{c.idea ? c.idea.votes : <span className="r-muted">n/a</span>}</td>
-                <td>{c.idea ? ideaStatusLabel(c.idea.status) : <span className="r-muted">not on board</span>}</td>
-                <td>{label(stageLabels, c.stage)}</td>
-                <td>{c.owner || <span className="r-muted">none</span>}</td>
-                <td>{c.missing.length === 0 ? <Badge tone="final">Complete</Badge> : <Badge tone="warn">{c.missing.length} missing</Badge>}</td>
-                <td>
+                <td data-label="Votes">{c.idea ? c.idea.votes : <span className="r-muted">n/a</span>}</td>
+                <td data-label="Board status">{c.idea ? ideaStatusLabel(c.idea.status) : <span className="r-muted">not on board</span>}</td>
+                <td data-label="Review stage">{label(stageLabels, c.stage)}</td>
+                <td data-label="Owner">{c.owner || <span className="r-muted">none</span>}</td>
+                <td data-label="Card">
+                  {c.missing.length === 0 ? <Badge tone="final">Complete</Badge> : <Badge tone="warn">{c.missing.length} missing</Badge>}
+                </td>
+                <td data-label="Last decision">
                   {c.latestOutcome ? `${outcomeLabels[c.latestOutcome]} (${c.latestDecidedAt})` : <span className="r-muted">none</span>}
                   {c.latestOutcome === "prioritize" && <div className="r-muted">{c.delivery === "none" ? "Not scheduled" : c.delivery.replace("_", " ")}</div>}
                 </td>

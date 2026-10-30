@@ -1,0 +1,19 @@
+.c-mageos-review-link__short {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .c-mageos-review-link__long {
+    display: none;
+  }
+  .c-mageos-review-link__short {
+    display: inline;
+  }
+}
+
+// The smallest phones cannot fit three header links with the default spacing.
+@media (max-width: 359px) {
+  #c-header .c-header__nav.flex--spacing-4 > * + * {
+    margin-inline-start: 0.5rem;
+  }
+}

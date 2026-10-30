@@ -239,7 +239,9 @@
   flex: 1 1 16rem;
 }
 
+// position: relative keeps visually hidden labels inside the scroll box instead of widening the page.
 .r-scroll {
+  position: relative;
   overflow-x: auto;
 }
 .r-table {
@@ -287,9 +289,14 @@
 
 .r-compare__table {
   min-width: 40rem;
+  // Criterion labels stay visible while candidate columns scroll sideways.
   th[scope="row"] {
+    position: sticky;
+    left: 0;
+    z-index: 1;
     width: 14rem;
     font-weight: 600;
+    background: var(--colors-white);
   }
   thead th {
     text-transform: none;
@@ -429,4 +436,63 @@
 .r-summary {
   font-family: ui-monospace, monospace;
   font-size: 0.85rem;
+}
+
+// Wide tables become one card per row on narrow screens, with the column name before each value.
+@media (max-width: 760px) {
+  .r-table--stack {
+    width: 100%;
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    tr {
+      display: block;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--colors-gray-300);
+    }
+    // Label sits in the left gutter so cells with several children keep them all in the value column.
+    td {
+      display: block;
+      position: relative;
+      min-height: 1.6rem;
+      padding: 0.2rem 0 0.2rem 8.5rem;
+      border: 0;
+      &::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        top: 0.3rem;
+        width: 8rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--colors-gray-700);
+      }
+    }
+  }
+  .r-myassess__row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .r-field--inline {
+    display: block;
+    min-width: 0;
+    margin-right: 0;
+  }
+  .r-decision {
+    padding: 0.75rem;
+  }
+  .r-compare__table th[scope="row"] {
+    width: 8rem;
+  }
+  .r-tabs a {
+    padding: 0.5rem 0.6rem;
+  }
+}
+
+#p-mageos-review {
+  overflow-wrap: anywhere;
 }
