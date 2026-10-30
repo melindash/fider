@@ -1,0 +1,17 @@
+# Private staging: no tunnel, app and mail sink published only on STAGING_BIND (a VPN/tailnet
+# address, never a public one). Sign-in emails land in Mailpit instead of being sent.
+services:
+  app:
+    environment:
+      EMAIL_SMTP_HOST: mail
+      EMAIL_SMTP_PORT: '1025'
+      EMAIL_SMTP_ENABLE_STARTTLS: 'false'
+    ports:
+      - ${STAGING_BIND:?Set STAGING_BIND}:${STAGING_APP_PORT:-3100}:3000
+
+  mail:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:latest}
+    restart: unless-stopped
+    ports:
+      - ${STAGING_BIND}:${STAGING_MAIL_PORT:-8025}:8025
+    networks: [internal]
