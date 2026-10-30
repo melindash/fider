@@ -7,6 +7,7 @@ import (
 
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/entity"
+	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 	. "github.com/getfider/fider/app/pkg/assert"
 	"github.com/getfider/fider/app/pkg/bus"
@@ -289,4 +290,83 @@ func TestMageOS_ImportHelpersAreIdempotent(t *testing.T) {
 	post := reloadPost(demoTenantCtx, newPost.Result.Number)
 	Expect(post.HistoricalVotesCount).Equals(6)
 	Expect(post.VotesCount).Equals(6)
+}
+
+func submitAnonymousPost(t *testing.T, token, title, email string) (*entity.Post, *entity.MageOSAnonymousVoter, *entity.User) {
+	author := &cmd.MageOSEnsureAnonymousAuthor{}
+	bus.MustDispatch(demoTenantCtx, author)
+	voter, _ := newAnonymousVoter(t, token)
+	newPost := &cmd.AddNewPost{Title: title, Description: "x"}
+	bus.MustDispatch(withUser(demoTenantCtx, author.Result), newPost)
+	bus.MustDispatch(demoTenantCtx, &cmd.MageOSRecordAnonymousPost{Post: newPost.Result, VoterID: voter.ID, Email: email})
+	return newPost.Result, voter, author.Result
+}
+
+func TestMageOS_AnonymousPostIsHeldForModeration(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	post, _, author := submitAnonymousPost(t, "token-a", "An idea without an account", "someone@example.com")
+	Expect(post.IsApproved).IsFalse()
+	Expect(reloadPost(jonSnowCtx, post.Number).IsApproved).IsFalse()
+
+	again := &cmd.MageOSEnsureAnonymousAuthor{}
+	bus.MustDispatch(demoTenantCtx, again)
+	Expect(again.Result.ID).Equals(author.ID)
+
+	submission := &query.MageOSGetAnonymousSubmission{PostID: post.ID}
+	bus.MustDispatch(jonSnowCtx, submission)
+	Expect(submission.Result.Email).Equals("someone@example.com")
+	Expect(submission.Result.Claimed).IsFalse()
+
+	subscribers := &query.GetActiveSubscribers{Number: post.Number, Channel: enum.NotificationChannelEmail, Event: enum.NotificationEventNewComment}
+	bus.MustDispatch(jonSnowCtx, subscribers)
+	for _, u := range subscribers.Result {
+		Expect(u.ID).NotEquals(author.ID)
+	}
+}
+
+func TestMageOS_AnonymousAuthorCannotBeTrustedOrBlocked(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	_, _, author := submitAnonymousPost(t, "token-a", "An idea without an account", "someone@example.com")
+	bus.MustDispatch(jonSnowCtx, &cmd.TrustUser{UserID: author.ID}, &cmd.BlockUser{UserID: author.ID})
+
+	get := &query.GetUserByID{UserID: author.ID, TenantID: author.Tenant.ID}
+	bus.MustDispatch(demoTenantCtx, get)
+	Expect(get.Result.IsTrusted).IsFalse()
+	Expect(get.Result.Status).Equals(enum.UserActive)
+}
+
+func TestMageOS_SignInClaimsAnonymousPostOnlyWithMatchingEmail(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	other, otherVoter, author := submitAnonymousPost(t, "token-a", "Submitted with Arya's address", "arya.stark@got.com")
+	bus.MustDispatch(jonSnowCtx, &cmd.MageOSMergeAnonymousVoter{VoterID: otherVoter.ID, UserID: jonSnow.ID})
+	Expect(reloadPost(jonSnowCtx, other.Number).User.ID).Equals(author.ID)
+
+	own, ownVoter, _ := submitAnonymousPost(t, "token-b", "Submitted by Arya herself", "Arya.Stark@GOT.com")
+	bus.MustDispatch(aryaStarkCtx, &cmd.MageOSMergeAnonymousVoter{VoterID: ownVoter.ID, UserID: aryaStark.ID})
+	Expect(reloadPost(jonSnowCtx, own.Number).User.ID).Equals(aryaStark.ID)
+
+	submission := &query.MageOSGetAnonymousSubmission{PostID: own.ID}
+	bus.MustDispatch(jonSnowCtx, submission)
+	Expect(submission.Result.Claimed).IsTrue()
+}
+
+func TestMageOS_AnonymousVoterEmail(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	voter, _ := newAnonymousVoter(t, "token-a")
+	bus.MustDispatch(demoTenantCtx, &cmd.MageOSSetAnonymousVoterEmail{VoterID: voter.ID, Email: "voter@example.com"})
+	get := &query.MageOSGetAnonymousVoter{TokenHash: mageos.HashToken("token-a")}
+	bus.MustDispatch(demoTenantCtx, get)
+	Expect(get.Result.Email).Equals("voter@example.com")
+
+	bus.MustDispatch(demoTenantCtx, &cmd.MageOSSetAnonymousVoterEmail{VoterID: voter.ID, Email: ""})
+	bus.MustDispatch(demoTenantCtx, get)
+	Expect(get.Result.Email).Equals("")
 }

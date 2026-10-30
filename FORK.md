@@ -10,7 +10,9 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | Anonymous voting | `app/pkg/mageos/`, `*mageos*.go`, `app/middlewares/mageos_voter.go`, `public/hooks/use-mageos-vote.ts`, `public/components/mageos/` | Cookie `mageos_voter`; DB stores SHA-256 only. Unique (post, voter) prevents duplicate votes. |
 | Rate limits and abuse tools | `app/pkg/mageos/ratelimit.go`, `app/handlers/apiv1/mageos.go` | Per-network limits; admin burst report and void endpoint. |
 | Sign-in merge | `app/middlewares/mageos_voter.go` | On the first signed-in request carrying a voter cookie: votes and roles move to the account, duplicates collapse. |
-| Participant roles | `ParticipantRolesModal.tsx`, `users.mageos_roles`, `mageos_anonymous_voters.roles` | Multi-select, optional, prompted once, editable from any idea page. Never weights votes. |
+| Participant roles | `ParticipantRolesModal.tsx`, `users.mageos_roles`, `mageos_anonymous_voters.roles` | Multi-select, optional, prompted once, editable from any idea page. Never weights votes. Visitors without an account must give an email to save roles. |
+| Voter email | `mageos_anonymous_voters.email`, `ParticipantRolesModal.tsx` | Optional field in the prompt after a first anonymous vote. Unverified. Never shown publicly, never used to merge voters. |
+| Ideas without an account | `app/handlers/apiv1/mageos_submit.go`, `components/mageos/AnonymousSubmit.tsx`, `AnonymousSubmitter.tsx`, `mageos_anonymous_posts` | Email required. Always held for moderation. Owned by the shared `Anonymous contributor` user (`users.mageos_anonymous_author`, no email, notifications suppressed). No image attachments. Collaborators see the contact email on the idea page. On sign-in from the same browser, the idea moves to the account only if the account email matches the submitted one. |
 | Historical GitHub votes | `posts.mageos_historical_votes`, `mageos_historical_source` | Set per idea when importing GitHub discussions. Counted in totals and ranking; shown separately on the idea page. |
 | GitHub discussion import | `scripts/mageos/import-github-discussions.mjs`, `PUT /api/v1/posts/:number/historical-votes`, `GET /api/v1/mageos/links?url=` | Dry run by default; `--apply` to write. Skips discussions already linked as a source. Read-only towards GitHub. |
 | GitHub links and webhook | `app/handlers/apiv1/mageos_links.go`, `app/handlers/webhooks/mageos_github.go`, `PostLinks.tsx` | Read-only towards GitHub. |
@@ -19,7 +21,7 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | Theme follows the system | `views/base.html`, `public/components/ThemeSwitcher.tsx`, `app/pkg/web/testdata/*.html` | Without a saved choice, the theme follows `prefers-color-scheme`. Only the toggle saves a choice (upstream saved on every page load, which froze the first theme). The renderer fixtures embed the base template script, so they change with it. |
 | Out-of-order migrations | `app/pkg/dbx/migrate_mageos.go` | Applies every migration missing from `migrations_history`. Upstream applies only versions above the newest applied one, which would skip upstream migrations dated before a fork migration. |
 
-Upstream files touched only at integration seams: `routes.go` (middleware, webhook route, `mageosRoutes(r)`), `server.go` and `postgres.go` (registration), `migrate.go` (one condition), `post.go` (vote aggregation and `has_voted`), `common.go` (status filters), `actions/post.go` (status validation), entity/db Post structs, `post_status.go`, `public/components/index.tsx` and `PostDetails.tsx` (point at `components/mageos/VoteCounter` and `VoteSection`), `ShowPostResponse.tsx`, `models/post.ts`, hook and action index files. Upstream `VoteCounter.tsx` and `VoteSection.tsx` are kept unchanged and unused.
+Upstream files touched only at integration seams: `routes.go` (middleware, webhook route, `mageosRoutes(r)`), `server.go` and `postgres.go` (registration), `migrate.go` (one condition), `post.go` (vote aggregation and `has_voted`), `common.go` (status filters), `actions/post.go` (status validation), `user.go` `blockUser` and `moderation.go` `trustUser` (skip the anonymous author), `ShareFeedback.tsx` (`AnonymousSubmit` replaces the sign-in step), entity/db Post structs, `post_status.go`, `public/components/index.tsx` and `PostDetails.tsx` (point at `components/mageos/VoteCounter` and `VoteSection`), `ShowPostResponse.tsx`, `models/post.ts`, hook and action index files. Upstream `VoteCounter.tsx` and `VoteSection.tsx` are kept unchanged and unused.
 
 ## Configuration
 
@@ -31,6 +33,9 @@ Upstream files touched only at integration seams: `routes.go` (middleware, webho
 | `MAGEOS_VOTES_PER_NETWORK_PER_HOUR` | 600 | Anonymous votes per network. |
 | `MAGEOS_VOTES_PER_VOTER_PER_MINUTE` | 30 | Votes per anonymous voter. |
 | `MAGEOS_VOTES_PER_NETWORK_PER_POST_PER_DAY` | 25 | Anonymous votes on one idea from one network per 24 h. Stored in the database; survives restarts. |
+| `MAGEOS_ANONYMOUS_POSTS` | `true` | `false` turns off ideas without an account (abuse kill switch). |
+| `MAGEOS_ANONYMOUS_POSTS_PER_NETWORK_PER_HOUR` | 10 | Ideas without an account per network. |
+| `MAGEOS_ANONYMOUS_POSTS_PER_VOTER_PER_HOUR` | 3 | Ideas without an account per browser. |
 | `MAGEOS_GITHUB_WEBHOOK_SECRET` | empty | Enables `POST /webhooks/github`. Empty = endpoint returns 404. |
 | `MAGEOS_GITHUB_AUTO_STATUS` | `false` | Allows Planned → Started when a linked issue or PR opens. |
 

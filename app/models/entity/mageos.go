@@ -7,7 +7,15 @@ type MageOSAnonymousVoter struct {
 	ID               int        `json:"-"`
 	Roles            []string   `json:"roles"`
 	RolesPromptedAt  *time.Time `json:"rolesPromptedAt"`
+	Email            string     `json:"-"`
 	MergedIntoUserID *int       `json:"-"`
+}
+
+// MageOSAnonymousSubmission is the contact address left with an idea submitted without an account.
+type MageOSAnonymousSubmission struct {
+	Email     string    `json:"email" db:"email"`
+	CreatedAt time.Time `json:"createdAt" db:"created_at"`
+	Claimed   bool      `json:"claimed" db:"claimed"`
 }
 
 // MageOSRoleCount is the number of distinct participants who selected a role.

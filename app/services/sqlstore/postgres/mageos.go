@@ -9,6 +9,7 @@ import (
 
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/entity"
+	"github.com/getfider/fider/app/models/enum"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/dbx"
@@ -19,11 +20,12 @@ type dbMageOSVoter struct {
 	ID               int            `db:"id"`
 	Roles            pq.StringArray `db:"roles"`
 	RolesPromptedAt  dbx.NullTime   `db:"roles_prompted_at"`
+	Email            dbx.NullString `db:"email"`
 	MergedIntoUserID dbx.NullInt    `db:"merged_into_user_id"`
 }
 
 func (v dbMageOSVoter) toModel() *entity.MageOSAnonymousVoter {
-	voter := &entity.MageOSAnonymousVoter{ID: v.ID, Roles: []string(v.Roles)}
+	voter := &entity.MageOSAnonymousVoter{ID: v.ID, Roles: []string(v.Roles), Email: v.Email.String}
 	if v.RolesPromptedAt.Valid {
 		voter.RolesPromptedAt = &v.RolesPromptedAt.Time
 	}
@@ -40,6 +42,10 @@ func registerMageOSHandlers() {
 	bus.AddHandler(mageosAddAnonymousVote)
 	bus.AddHandler(mageosRemoveAnonymousVote)
 	bus.AddHandler(mageosSetAnonymousVoterRoles)
+	bus.AddHandler(mageosSetAnonymousVoterEmail)
+	bus.AddHandler(mageosEnsureAnonymousAuthor)
+	bus.AddHandler(mageosRecordAnonymousPost)
+	bus.AddHandler(mageosGetAnonymousSubmission)
 	bus.AddHandler(mageosGetUserRoles)
 	bus.AddHandler(mageosSetUserRoles)
 	bus.AddHandler(mageosMergeAnonymousVoter)
@@ -51,7 +57,7 @@ func registerMageOSHandlers() {
 	registerMageOSImportHandlers()
 }
 
-const mageosVoterColumns = `id, roles, roles_prompted_at, merged_into_user_id`
+const mageosVoterColumns = `id, roles, roles_prompted_at, email, merged_into_user_id`
 
 func mageosGetAnonymousVoter(ctx context.Context, q *query.MageOSGetAnonymousVoter) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
@@ -149,6 +155,81 @@ func mageosSetAnonymousVoterRoles(ctx context.Context, c *cmd.MageOSSetAnonymous
 	})
 }
 
+func mageosSetAnonymousVoterEmail(ctx context.Context, c *cmd.MageOSSetAnonymousVoterEmail) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		_, err := trx.Execute(`UPDATE mageos_anonymous_voters SET email = NULLIF($3, '') WHERE tenant_id = $1 AND id = $2`,
+			tenant.ID, c.VoterID, c.Email)
+		if err != nil {
+			return errors.Wrap(err, "failed to set anonymous voter email")
+		}
+		return nil
+	})
+}
+
+func mageosEnsureAnonymousAuthor(ctx context.Context, c *cmd.MageOSEnsureAnonymousAuthor) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		// No email, so nobody can sign in as this user, and suppressed so notifications skip it.
+		_, err := trx.Execute(`
+			INSERT INTO users (name, email, created_at, tenant_id, role, status, avatar_type, avatar_bkey, security_stamp, email_supressed_at, mageos_anonymous_author)
+			VALUES ('Anonymous contributor', '', now(), $1, $2, $3, $4, '', $5, now(), true)
+			ON CONFLICT (tenant_id) WHERE mageos_anonymous_author DO NOTHING`,
+			tenant.ID, enum.RoleVisitor, enum.UserActive, enum.AvatarTypeLetter, generateSecurityStamp())
+		if err != nil {
+			return errors.Wrap(err, "failed to create anonymous author")
+		}
+		var id int
+		if err := trx.Scalar(&id, `SELECT id FROM users WHERE tenant_id = $1 AND mageos_anonymous_author`, tenant.ID); err != nil {
+			return errors.Wrap(err, "failed to find anonymous author")
+		}
+		author, err := queryUser(ctx, trx, "id = $1 AND tenant_id = $2", id, tenant.ID)
+		if err != nil {
+			return errors.Wrap(err, "failed to load anonymous author")
+		}
+		c.Result = author
+		return nil
+	})
+}
+
+func mageosRecordAnonymousPost(ctx context.Context, c *cmd.MageOSRecordAnonymousPost) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		// Ideas without an account always wait for a moderator, even when moderation is off for the board.
+		if _, err := trx.Execute(`UPDATE posts SET is_approved = false WHERE tenant_id = $1 AND id = $2`, tenant.ID, c.Post.ID); err != nil {
+			return errors.Wrap(err, "failed to hold anonymous post for moderation")
+		}
+		c.Post.IsApproved = false
+
+		if _, err := trx.Execute(`DELETE FROM post_subscribers WHERE tenant_id = $1 AND post_id = $2 AND user_id = $3`,
+			tenant.ID, c.Post.ID, c.Post.User.ID); err != nil {
+			return errors.Wrap(err, "failed to unsubscribe anonymous author")
+		}
+
+		_, err := trx.Execute(`INSERT INTO mageos_anonymous_posts (tenant_id, post_id, voter_id, email) VALUES ($1, $2, $3, $4)`,
+			tenant.ID, c.Post.ID, c.VoterID, c.Email)
+		if err != nil {
+			return errors.Wrap(err, "failed to record anonymous post")
+		}
+		return nil
+	})
+}
+
+func mageosGetAnonymousSubmission(ctx context.Context, q *query.MageOSGetAnonymousSubmission) error {
+	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
+		submission := entity.MageOSAnonymousSubmission{}
+		err := trx.Get(&submission, `
+			SELECT email, created_at, claimed_by_user_id IS NOT NULL AS claimed
+			FROM mageos_anonymous_posts WHERE tenant_id = $1 AND post_id = $2`, tenant.ID, q.PostID)
+		if errors.Cause(err) == app.ErrNotFound {
+			q.Result = nil
+			return nil
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed to get anonymous submission")
+		}
+		q.Result = &submission
+		return nil
+	})
+}
+
 func mageosGetUserRoles(ctx context.Context, q *query.MageOSGetUserRoles) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		if user == nil {
@@ -210,6 +291,26 @@ func mageosMergeAnonymousVoter(ctx context.Context, c *cmd.MageOSMergeAnonymousV
 			AND cardinality(u.mageos_roles) = 0`, tenant.ID, c.VoterID, c.UserID)
 		if err != nil {
 			return errors.Wrap(err, "failed to copy anonymous roles to user")
+		}
+
+		// Ideas submitted from this browser become the user's only when the account email matches the one
+		// given with the idea, so typing someone else's address never hands them authorship.
+		_, err = trx.Execute(`
+			WITH claimed AS (
+				UPDATE mageos_anonymous_posts ap SET claimed_by_user_id = $3, claimed_at = now()
+				FROM users u
+				WHERE ap.tenant_id = $1 AND ap.voter_id = $2 AND ap.claimed_by_user_id IS NULL
+				AND u.tenant_id = $1 AND u.id = $3 AND u.email <> '' AND lower(u.email) = lower(ap.email)
+				RETURNING ap.post_id
+			), moved AS (
+				UPDATE posts SET user_id = $3 WHERE tenant_id = $1 AND id IN (SELECT post_id FROM claimed) RETURNING id
+			)
+			INSERT INTO post_subscribers (tenant_id, user_id, post_id, created_at, updated_at, status)
+			SELECT $1, $3, id, now(), now(), $4 FROM moved
+			ON CONFLICT DO NOTHING`,
+			tenant.ID, c.VoterID, c.UserID, enum.SubscriberActive)
+		if err != nil {
+			return errors.Wrap(err, "failed to claim anonymous posts")
 		}
 
 		_, err = trx.Execute(`

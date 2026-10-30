@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { Trans } from "@lingui/react/macro"
-import { Button, Checkbox, Modal } from "@fider/components"
+import { i18n } from "@lingui/core"
+import { Button, Checkbox, Form, Input, Modal } from "@fider/components"
 import { CloseIcon } from "@fider/components/common"
 import { HStack, VStack } from "@fider/components/layout"
 import { actions } from "@fider/services"
@@ -31,8 +32,10 @@ const roleLabel = (role: string): JSX.Element => {
 export const ParticipantRolesModal = (props: ParticipantRolesModalProps) => {
   const [available, setAvailable] = useState<string[]>([])
   const [selected, setSelected] = useState<string[]>([])
+  const [isAnonymous, setIsAnonymous] = useState(false)
+  const [email, setEmail] = useState("")
   const [loaded, setLoaded] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | undefined>()
 
   useEffect(() => {
     if (!props.isOpen) return
@@ -41,6 +44,8 @@ export const ParticipantRolesModal = (props: ParticipantRolesModalProps) => {
       if (result.ok) {
         setAvailable(result.data.availableRoles)
         setSelected(result.data.roles)
+        setIsAnonymous(result.data.isAnonymous)
+        setEmail(result.data.email || "")
       }
       setLoaded(true)
     })
@@ -50,18 +55,23 @@ export const ParticipantRolesModal = (props: ParticipantRolesModalProps) => {
     setSelected(checked ? [...selected.filter((r) => r !== role), role] : selected.filter((r) => r !== role))
   }
 
-  const save = async (roles: string[]) => {
+  // Visitors without an account send their email with the roles; skipping sends neither.
+  const save = async (roles: string[], withEmail: boolean) => {
     const ordered = available.filter((role) => roles.includes(role))
-    const result = await actions.setParticipantRoles(ordered)
+    if (isAnonymous && withEmail && ordered.length > 0 && email.trim() === "") {
+      setError(i18n._({ id: "mageos.roles.emailrequired", message: "Add your email address to choose roles." }))
+      return
+    }
+    const result = await actions.setParticipantRoles(ordered, isAnonymous && withEmail ? email : undefined)
     if (result.ok) {
-      setError(false)
+      setError(undefined)
       props.onClose(ordered)
     } else {
-      setError(true)
+      setError(result.data.message || i18n._({ id: "mageos.roles.error", message: "Your roles could not be saved. Please try again." }))
     }
   }
 
-  const dismiss = () => (props.mode === "prompt" ? save(selected) : props.onClose())
+  const dismiss = () => (props.mode === "prompt" ? save([], false) : props.onClose())
 
   return (
     <Modal.Window isOpen={props.isOpen} onClose={dismiss}>
@@ -75,6 +85,22 @@ export const ParticipantRolesModal = (props: ParticipantRolesModalProps) => {
       </Modal.Header>
       <Modal.Content>
         <VStack spacing={4}>
+          {isAnonymous && (
+            <Form>
+              <Input
+                field="mageos-email"
+                type="email"
+                autoComplete="email"
+                label={i18n._({ id: "mageos.roles.email.label", message: "Your email address (optional)" })}
+                value={email}
+                onChange={setEmail}
+                placeholder="you@example.com"
+              />
+              <p className="text-sm text-muted">
+                <Trans id="mageos.roles.email.help">Never shown publicly. Choosing roles requires an email address.</Trans>
+              </p>
+            </Form>
+          )}
           <p className="text-muted">
             <Trans id="mageos.roles.explanation">
               Optional. Choose any that apply. Roles help maintainers see which groups are taking part. They are self-reported, only ever shown as totals, and
@@ -92,17 +118,17 @@ export const ParticipantRolesModal = (props: ParticipantRolesModalProps) => {
           )}
           {error && (
             <p className="text-red-700" role="alert">
-              <Trans id="mageos.roles.error">Your roles could not be saved. Please try again.</Trans>
+              {error}
             </p>
           )}
         </VStack>
       </Modal.Content>
       <Modal.Footer>
-        <Button variant="primary" onClick={() => save(selected)} disabled={!loaded}>
+        <Button variant="primary" onClick={() => save(selected, true)} disabled={!loaded}>
           <Trans id="action.save">Save</Trans>
         </Button>
         {props.mode === "prompt" ? (
-          <Button variant="tertiary" onClick={() => save([])} disabled={!loaded}>
+          <Button variant="tertiary" onClick={() => save([], false)} disabled={!loaded}>
             <Trans id="mageos.roles.skip">Skip</Trans>
           </Button>
         ) : (

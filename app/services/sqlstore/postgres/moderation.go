@@ -263,7 +263,7 @@ func trustUser(ctx context.Context, c *cmd.TrustUser) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		_, err := trx.Execute(`
 			UPDATE users SET is_trusted = true, status = $1
-			WHERE id = $2 AND tenant_id = $3`, enum.UserActive, c.UserID, tenant.ID)
+			WHERE id = $2 AND tenant_id = $3 AND NOT mageos_anonymous_author`, enum.UserActive, c.UserID, tenant.ID)
 		if err != nil {
 			return errors.Wrap(err, "failed to trust user")
 		}

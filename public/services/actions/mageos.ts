@@ -1,4 +1,6 @@
-// Mage-OS fork. Uses fetch directly instead of the shared http helper so a 403 or 429
+import { http } from "../http"
+
+// Mage-OS fork. Most calls use fetch directly instead of the shared http helper so a 403 or 429
 // can be handled in the vote UI rather than as a generic error toast.
 
 export interface MageOSResult<T> {
@@ -12,6 +14,7 @@ export interface Participant {
   rolesPrompted: boolean
   availableRoles: string[]
   isAnonymous: boolean
+  email?: string
 }
 
 async function send<T>(url: string, method: "GET" | "POST" | "PUT" | "DELETE", body?: unknown): Promise<MageOSResult<T>> {
@@ -32,7 +35,20 @@ export const removeAnonymousVote = (postNumber: number) => send<unknown>(`/api/v
 
 export const getParticipant = () => send<Participant>("/api/v1/mageos/participant", "GET")
 
-export const setParticipantRoles = (roles: string[]) => send<{ message?: string }>("/api/v1/mageos/participant/roles", "PUT", { roles })
+// email is only sent for visitors without an account; leaving it undefined keeps the stored one.
+export const setParticipantRoles = (roles: string[], email?: string) => send<{ message?: string }>("/api/v1/mageos/participant/roles", "PUT", { roles, email })
+
+// Goes through the shared http helper so validation errors reach the idea form's fields.
+export const createAnonymousPost = (title: string, description: string, tags: string[], email: string) =>
+  http.post<{ number: number; slug: string; isApproved: boolean; message?: string }>("/api/v1/mageos/anonymous-posts", { title, description, tags, email })
+
+export interface AnonymousSubmission {
+  email: string
+  createdAt: string
+  claimed: boolean
+}
+
+export const getAnonymousSubmission = (postNumber: number) => send<AnonymousSubmission>(`/api/v1/posts/${postNumber}/anonymous-submission`, "GET")
 
 export interface PostLink {
   id: number

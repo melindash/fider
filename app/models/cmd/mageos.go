@@ -35,6 +35,24 @@ type MageOSSetAnonymousVoterRoles struct {
 	Roles   []string
 }
 
+// MageOSSetAnonymousVoterEmail stores an unverified contact address. It is never used to merge voters.
+type MageOSSetAnonymousVoterEmail struct {
+	VoterID int
+	Email   string
+}
+
+// MageOSEnsureAnonymousAuthor finds or creates the shared author of ideas submitted without an account.
+type MageOSEnsureAnonymousAuthor struct {
+	Result *entity.User
+}
+
+// MageOSRecordAnonymousPost holds a newly created anonymous idea for moderation and stores the submitter's email.
+type MageOSRecordAnonymousPost struct {
+	Post    *entity.Post
+	VoterID int
+	Email   string
+}
+
 // MageOSSetUserRoles updates the signed-in user's roles.
 type MageOSSetUserRoles struct {
 	Roles []string

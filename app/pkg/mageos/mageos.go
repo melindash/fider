@@ -48,6 +48,13 @@ type Limits struct {
 	VotesPerVoterPerMinute     int
 	// VotesPerNetworkPerPostPerDay is enforced from the database, so it survives restarts.
 	VotesPerNetworkPerPostPerDay int
+	PostsPerNetworkPerHour       int
+	PostsPerVoterPerHour         int
+}
+
+// AnonymousPostsEnabled is the kill switch for submitting ideas without an account.
+func AnonymousPostsEnabled() bool {
+	return os.Getenv("MAGEOS_ANONYMOUS_POSTS") != "false"
 }
 
 // AnonymousVotingEnabled is the kill switch for anonymous voting during abuse.
@@ -62,6 +69,8 @@ func CurrentLimits() Limits {
 		VotesPerNetworkPerHour:       envInt("MAGEOS_VOTES_PER_NETWORK_PER_HOUR", 600),
 		VotesPerVoterPerMinute:       envInt("MAGEOS_VOTES_PER_VOTER_PER_MINUTE", 30),
 		VotesPerNetworkPerPostPerDay: envInt("MAGEOS_VOTES_PER_NETWORK_PER_POST_PER_DAY", 25),
+		PostsPerNetworkPerHour:       envInt("MAGEOS_ANONYMOUS_POSTS_PER_NETWORK_PER_HOUR", 10),
+		PostsPerVoterPerHour:         envInt("MAGEOS_ANONYMOUS_POSTS_PER_VOTER_PER_HOUR", 3),
 	}
 }
 

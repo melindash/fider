@@ -1,7 +1,7 @@
 import "./ShareFeedback.scss"
 
 import React, { useEffect, useRef, useState } from "react"
-import { SignInControl } from "@fider/components/common/SignInControl"
+import { AnonymousSubmit } from "@fider/components/mageos/AnonymousSubmit"
 import { Modal, CloseIcon, Form, Button, Input, LegalFooter } from "@fider/components/common"
 import { useFider } from "@fider/hooks"
 import { Trans } from "@lingui/react/macro"
@@ -22,7 +22,6 @@ import {
   setCachedDescription,
   setCachedTags,
   setCachedTitle,
-  setPostPending,
 } from "./PostCache"
 import { useAttachments } from "@fider/hooks/useAttachments"
 
@@ -176,10 +175,6 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
     setDescription(value)
   }
 
-  const onSubmitFeedback = () => {
-    setPostPending(true)
-  }
-
   const clearError = () => setError(undefined)
 
   const finaliseFeedback = async () => {
@@ -210,11 +205,6 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
         setError(result.error)
       }
     }
-  }
-
-  const onCodeVerified = (): void => {
-    // User is authenticated - finalize the feedback submission
-    finaliseFeedback()
   }
 
   const handleEditorFocus = () => {
@@ -287,12 +277,17 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
               <h2 className="text-title text-center mb-4">
                 <Trans id="newpost.modal.submit">Submit your idea</Trans>
               </h2>
-              <SignInControl
-                onSubmit={onSubmitFeedback}
-                onCodeVerified={onCodeVerified}
-                signInButtonText={i18n._({ id: "signin.message.email", message: "Continue with Email" })}
-                useEmail={true}
-                redirectTo={fider.settings.baseURL}
+              <AnonymousSubmit
+                title={title}
+                description={description}
+                tags={tags.map((tag) => tag.slug)}
+                hasAttachments={attachments.length > 0}
+                onError={setError}
+                onSubmitted={() => {
+                  clearCache()
+                  clearAttachments()
+                  onClose()
+                }}
               />
             </div>
           </div>

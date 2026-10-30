@@ -39,7 +39,7 @@ func countUsers(ctx context.Context, q *query.CountUsers) error {
 func blockUser(ctx context.Context, c *cmd.BlockUser) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
 		if _, err := trx.Execute(
-			"UPDATE users SET status = $3, security_stamp = $4 WHERE id = $1 AND tenant_id = $2",
+			"UPDATE users SET status = $3, security_stamp = $4 WHERE id = $1 AND tenant_id = $2 AND NOT mageos_anonymous_author",
 			c.UserID, tenant.ID, enum.UserBlocked, generateSecurityStamp(),
 		); err != nil {
 			return errors.Wrap(err, "failed to block user")

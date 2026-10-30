@@ -12,6 +12,13 @@ type MageOSGetAnonymousVoter struct {
 	Result *entity.MageOSAnonymousVoter
 }
 
+// MageOSGetAnonymousSubmission returns the submitter of an anonymous idea, or nil.
+type MageOSGetAnonymousSubmission struct {
+	PostID int
+
+	Result *entity.MageOSAnonymousSubmission
+}
+
 // MageOSGetUserRoles returns the signed-in user's roles.
 type MageOSGetUserRoles struct {
 	Roles           []string

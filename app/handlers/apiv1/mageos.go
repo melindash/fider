@@ -125,6 +125,7 @@ type mageosParticipant struct {
 	RolesPrompted  bool     `json:"rolesPrompted"`
 	AvailableRoles []string `json:"availableRoles"`
 	IsAnonymous    bool     `json:"isAnonymous"`
+	Email          string   `json:"email,omitempty"`
 }
 
 // GetParticipant returns the current visitor's self-reported roles.
@@ -140,7 +141,7 @@ func GetParticipant() web.HandlerFunc {
 		} else {
 			result.IsAnonymous = true
 			if voter := mageos.VoterFromContext(c); voter != nil {
-				result.Roles, result.RolesPrompted = voter.Roles, voter.RolesPromptedAt != nil
+				result.Roles, result.RolesPrompted, result.Email = voter.Roles, voter.RolesPromptedAt != nil, voter.Email
 			}
 		}
 		if result.Roles == nil {
@@ -151,10 +152,12 @@ func GetParticipant() web.HandlerFunc {
 }
 
 // SetParticipantRoles saves roles. An empty list records "skipped" so the prompt stays dismissed.
+// Visitors without an account may also leave an email, which roles require.
 func SetParticipantRoles() web.HandlerFunc {
 	return func(c *web.Context) error {
 		input := struct {
 			Roles []string `json:"roles"`
+			Email *string  `json:"email"`
 		}{}
 		if err := c.Bind(&input); err != nil {
 			return c.BadRequest(web.Map{"message": "Invalid request."})
@@ -176,6 +179,21 @@ func SetParticipantRoles() web.HandlerFunc {
 		if !mageos.AnonymousVotingEnabled() {
 			return c.Forbidden()
 		}
+
+		email := ""
+		if voter := mageos.VoterFromContext(c); voter != nil {
+			email = voter.Email
+		}
+		if input.Email != nil {
+			var message string
+			if email, message = mageosValidEmail(c, *input.Email); message != "" {
+				return c.BadRequest(web.Map{"message": message})
+			}
+		}
+		if len(input.Roles) > 0 && email == "" {
+			return c.BadRequest(web.Map{"message": "Add your email address to save roles."})
+		}
+
 		voterID, _, limited, err := mageosEnsureVoter(c)
 		if err != nil {
 			return c.Failure(err)
@@ -185,6 +203,11 @@ func SetParticipantRoles() web.HandlerFunc {
 		}
 		if err := bus.Dispatch(c, &cmd.MageOSSetAnonymousVoterRoles{VoterID: voterID, Roles: input.Roles}); err != nil {
 			return c.Failure(err)
+		}
+		if input.Email != nil {
+			if err := bus.Dispatch(c, &cmd.MageOSSetAnonymousVoterEmail{VoterID: voterID, Email: email}); err != nil {
+				return c.Failure(err)
+			}
 		}
 		return c.Ok(web.Map{})
 	}
