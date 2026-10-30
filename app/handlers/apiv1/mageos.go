@@ -229,6 +229,7 @@ func GetParticipationByRole() web.HandlerFunc {
 		}
 		return c.Ok(web.Map{
 			"totalVoters": q.TotalVoters,
+			"noRole":      q.NoRole,
 			"byRole":      q.Result,
 			"note":        "Roles are self-reported and multi-select; one voter can appear in several groups. Voters without a role are counted in totalVoters only.",
 		})

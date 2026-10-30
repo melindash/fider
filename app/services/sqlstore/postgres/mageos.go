@@ -55,6 +55,7 @@ func registerMageOSHandlers() {
 	bus.AddHandler(mageosPurgeNetworkHashes)
 	registerMageOSLinkHandlers()
 	registerMageOSImportHandlers()
+	registerMageOSReviewHandlers()
 }
 
 const mageosVoterColumns = `id, roles, roles_prompted_at, email, merged_into_user_id`
@@ -340,6 +341,9 @@ func mageosParticipationByRole(ctx context.Context, q *query.MageOSParticipation
 
 		if err := trx.Scalar(&q.TotalVoters, participants+` SELECT COUNT(*) FROM participants`, tenant.ID, q.PostID); err != nil {
 			return errors.Wrap(err, "failed to count participants")
+		}
+		if err := trx.Scalar(&q.NoRole, participants+` SELECT COUNT(*) FROM participants WHERE cardinality(roles) = 0`, tenant.ID, q.PostID); err != nil {
+			return errors.Wrap(err, "failed to count participants without a role")
 		}
 
 		q.Result = []*entity.MageOSRoleCount{}

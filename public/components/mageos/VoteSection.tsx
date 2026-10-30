@@ -4,6 +4,7 @@ import { Button, Icon, SignInModal } from "@fider/components"
 import { ParticipantRolesModal } from "@fider/components/mageos/ParticipantRolesModal"
 import { PostLinks } from "@fider/components/mageos/PostLinks"
 import { AnonymousSubmitter } from "@fider/components/mageos/AnonymousSubmitter"
+import { AddToReview } from "@fider/components/mageos/AddToReview"
 import { useFider, useMageOSVote } from "@fider/hooks"
 import IconThumbsUp from "@fider/assets/images/heroicons-thumbsup.svg"
 import IconCheck from "@fider/assets/images/heroicons-check.svg"
@@ -84,6 +85,7 @@ export const VoteSection = (props: VoteSectionProps) => {
         </Button>
         <AnonymousSubmitter postNumber={props.post.number} />
         <PostLinks postNumber={props.post.number} />
+        <AddToReview postNumber={props.post.number} />
       </VStack>
     </>
   )

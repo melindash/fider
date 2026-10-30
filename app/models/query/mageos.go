@@ -31,6 +31,7 @@ type MageOSParticipationByRole struct {
 
 	Result      []*entity.MageOSRoleCount
 	TotalVoters int
+	NoRole      int
 }
 
 type MageOSListVoteBursts struct {

@@ -1,3 +1,4 @@
+import { MageOSReviewNavLink } from "./mageos/ReviewNavLink"
 import React, { useState } from "react"
 import { SignInModal, RSSModal, TenantLogo, NotificationIndicator, UserMenu, ThemeSwitcher, Icon, Button, ModerationIndicator } from "@fider/components"
 import { useFider } from "@fider/hooks"
@@ -18,7 +19,7 @@ export const Header = (props: HeaderProps) => {
 
   const pathname = typeof window !== "undefined" ? window.location.pathname : "/"
   const isRoadmapActive = pathname === "/roadmap"
-  const isFeedbackActive = !isRoadmapActive
+  const isFeedbackActive = !isRoadmapActive && !pathname?.startsWith("/review")
 
   const handleSignInClick = () => {
     setIsSignInModalOpen(true)
@@ -51,6 +52,7 @@ export const Header = (props: HeaderProps) => {
               <a href="/roadmap" className={`c-header__nav-link ${isRoadmapActive ? "c-header__nav-link--active" : ""}`}>
                 <Trans id="header.nav.roadmap">Roadmap</Trans>
               </a>
+              <MageOSReviewNavLink pathname={pathname} />
             </HStack>
             {fider.session.isAuthenticated && (
               <div className="c-header__moderation">
