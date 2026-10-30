@@ -15,6 +15,7 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | GitHub discussion import | `scripts/mageos/import-github-discussions.mjs`, `PUT /api/v1/posts/:number/historical-votes`, `GET /api/v1/mageos/links?url=` | Dry run by default; `--apply` to write. Skips discussions already linked as a source. Read-only towards GitHub. |
 | GitHub links and webhook | `app/handlers/apiv1/mageos_links.go`, `app/handlers/webhooks/mageos_github.go`, `PostLinks.tsx` | Read-only towards GitHub. |
 | Accessible vote button | `public/components/mageos/VoteCounter.tsx` | `aria-label`, `aria-pressed`. |
+| "Development Priorities" instead of "Roadmap" | `locale/en/client.json` (values only), `app/handlers/roadmap.go` (page title) | English only; the `/roadmap` URL is unchanged. Other locales keep upstream wording. |
 | Theme follows the system | `views/base.html`, `public/components/ThemeSwitcher.tsx`, `app/pkg/web/testdata/*.html` | Without a saved choice, the theme follows `prefers-color-scheme`. Only the toggle saves a choice (upstream saved on every page load, which froze the first theme). The renderer fixtures embed the base template script, so they change with it. |
 | Out-of-order migrations | `app/pkg/dbx/migrate_mageos.go` | Applies every migration missing from `migrations_history`. Upstream applies only versions above the newest applied one, which would skip upstream migrations dated before a fork migration. |
 

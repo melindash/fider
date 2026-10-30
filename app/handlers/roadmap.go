@@ -16,7 +16,7 @@ func RoadmapPage() web.HandlerFunc {
 	return func(c *web.Context) error {
 		props := web.Props{
 			Page:  "Roadmap/Roadmap.page",
-			Title: "Roadmap",
+			Title: "Development Priorities",
 		}
 
 		if env.IsSingleHostMode() || c.Tenant().IsPro {
