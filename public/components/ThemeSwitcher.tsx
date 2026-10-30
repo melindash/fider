@@ -9,7 +9,7 @@ type themeType = "light" | "dark"
 
 export const ThemeSwitcher = () => {
   // Lazy initialization of the theme state
-  const [currentTheme, setCurrentTheme] = useState<themeType>((cache.local.get("theme") as themeType) || "light")
+  const [currentTheme, setCurrentTheme] = useState<themeType>((cache.local.get("theme") as themeType) || "dark")
 
   const toggleTheme = () => {
     const newTheme = currentTheme === "light" ? "dark" : "light"
