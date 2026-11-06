@@ -176,7 +176,7 @@ const base = "/api/v1/mageos/review"
 export const review = {
   vocabulary: () => call<Vocabulary>("GET", `${base}/vocabulary`),
   dashboard: (today: string) => call<Dashboard>("GET", `${base}/dashboard?today=${today}`),
-  candidates: () => call<Candidate[]>("GET", `${base}/candidates`),
+  candidates: (includeArchived = false) => call<Candidate[]>("GET", `${base}/candidates${includeArchived ? "?archived=true" : ""}`),
   addCandidate: (input: { postNumber?: number; title?: string; sourceUrl?: string; track?: string }) =>
     call<{ id: number; existed: boolean }>("POST", `${base}/candidates`, input),
   candidate: (id: number) => call<CandidateDetail>("GET", `${base}/candidates/${id}`),
@@ -204,7 +204,7 @@ export const review = {
   searchIdeas: (q: string) =>
     call<{ number: number; title: string; votesCount: number; status: string }[]>(
       "GET",
-      `/api/v1/posts?query=${encodeURIComponent(q)}&view=most-wanted&limit=10`
+      `/api/v1/posts?query=${encodeURIComponent(q)}&view=most-wanted&limit=${q ? 20 : 200}`
     ),
   setPublicStatus: (postNumber: number, status: string, text: string) => call<unknown>("PUT", `/api/v1/posts/${postNumber}/status`, { status, text }),
 }

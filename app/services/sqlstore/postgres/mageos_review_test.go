@@ -88,6 +88,32 @@ func TestMageOSReview_ListCountsRatingsPerCriteriaGroup(t *testing.T) {
 	}
 }
 
+func TestMageOSReview_ReAddingARemovedIdeaRestoresIt(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	post := &cmd.AddNewPost{Title: "Bulk price editor", Description: "Edit many prices at once"}
+	bus.MustDispatch(jonSnowCtx, post)
+	add := &cmd.MageOSReviewAddCandidate{PostID: post.Result.ID}
+	bus.MustDispatch(jonSnowCtx, add)
+	bus.MustDispatch(jonSnowCtx, &cmd.MageOSReviewSetAssessment{CandidateID: add.Result, Criterion: "benefit", Rating: "strong"})
+	bus.MustDispatch(jonSnowCtx, &cmd.MageOSReviewUpdateCandidate{ID: add.Result, Fields: map[string]string{"stage": "archived"}})
+
+	list := &query.MageOSReviewListCandidates{}
+	bus.MustDispatch(jonSnowCtx, list)
+	Expect(list.Result).HasLen(0)
+
+	again := &cmd.MageOSReviewAddCandidate{PostID: post.Result.ID}
+	bus.MustDispatch(jonSnowCtx, again)
+	Expect(again.Existed).IsTrue()
+	Expect(again.Result).Equals(add.Result)
+
+	get := &query.MageOSReviewGetCandidate{ID: add.Result}
+	bus.MustDispatch(jonSnowCtx, get)
+	Expect(get.Result.Stage).Equals("new")
+	Expect(get.Result.Value).Equals(entity.ReviewRatingCount{Strong: 1})
+}
+
 func TestMageOSReview_MeetingWorkflow(t *testing.T) {
 	SetupDatabaseTest(t)
 	defer TeardownDatabaseTest()

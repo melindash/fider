@@ -4,45 +4,51 @@ import { Candidate, Meeting, RatingCount, Vocabulary, review } from "./api"
 import { Badge, Empty, ErrorText, SampleBadge } from "./components"
 import { deliveryLabels, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
 
-const AddCandidate = (props: { vocab: Vocabulary; onAdded: (id: number) => void }) => {
+type BoardIdea = { number: number; title: string; votesCount: number }
+
+const AddCandidate = (props: { vocab: Vocabulary; listed: Set<number>; removed: Set<number>; onAdded: (title: string) => void }) => {
   const [query, setQuery] = useState("")
-  const [results, setResults] = useState<{ number: number; title: string; votesCount: number }[]>([])
+  const [results, setResults] = useState<BoardIdea[]>()
   const [title, setTitle] = useState("")
   const [sourceUrl, setSourceUrl] = useState("")
   const [track, setTrack] = useState("product")
   const [error, setError] = useState<string>()
 
+  // With no search text the panel lists the whole board by votes, so candidates can be picked by browsing.
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setResults([])
-      return
-    }
-    const timer = setTimeout(() => review.searchIdeas(query).then((r) => r.ok && setResults(r.data)), 250)
+    const q = query.trim()
+    if (q.length === 1) return
+    const timer = setTimeout(() => review.searchIdeas(q).then((r) => (r.ok ? setResults(r.data) : setError(r.message))), q ? 250 : 0)
     return () => clearTimeout(timer)
   }, [query])
 
-  const add = async (input: Parameters<typeof review.addCandidate>[0]) => {
+  const add = async (input: Parameters<typeof review.addCandidate>[0], label: string) => {
     const result = await review.addCandidate(input)
     if (!result.ok) return setError(result.message)
     setError(undefined)
-    setQuery("")
     setTitle("")
     setSourceUrl("")
-    props.onAdded(result.data.id)
+    props.onAdded(label)
   }
+
+  const available = (results || []).filter((idea) => !props.listed.has(idea.number))
 
   return (
     <div className="r-panel">
       <div className="r-add">
         <div className="r-field">
           <label htmlFor="r-idea-search">From the ideas board</label>
-          <input id="r-idea-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search ideas by title" autoFocus />
-          {results.length > 0 && (
-            <ul className="r-list r-list--compact">
-              {results.map((idea) => (
+          <input id="r-idea-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Filter ideas" autoFocus />
+          {!results ? (
+            <p className="r-muted">Loading ideas…</p>
+          ) : available.length === 0 ? (
+            <p className="r-muted">{query.trim() ? "No matching ideas that aren't already candidates." : "Every idea on the board is already a candidate."}</p>
+          ) : (
+            <ul className="r-list r-list--compact r-browse">
+              {available.map((idea) => (
                 <li key={idea.number}>
-                  <Button size="small" variant="tertiary" onClick={() => add({ postNumber: idea.number })}>
-                    Add
+                  <Button size="small" variant="tertiary" onClick={() => add({ postNumber: idea.number }, idea.title)}>
+                    {props.removed.has(idea.number) ? "Add back" : "Add"}
                   </Button>{" "}
                   #{idea.number} {idea.title} <span className="r-muted">· {idea.votesCount} votes</span>
                 </li>
@@ -65,7 +71,7 @@ const AddCandidate = (props: { vocab: Vocabulary; onAdded: (id: number) => void 
             ))}
           </select>
           <div>
-            <Button variant="primary" size="small" disabled={!title.trim()} onClick={() => add({ title, sourceUrl, track })}>
+            <Button variant="primary" size="small" disabled={!title.trim()} onClick={() => add({ title, sourceUrl, track }, title)}>
               Add initiative
             </Button>
           </div>
@@ -112,7 +118,8 @@ const views = [
 const byVotes = (a: Candidate, b: Candidate) => (b.idea?.votes ?? -1) - (a.idea?.votes ?? -1) || a.title.localeCompare(b.title)
 
 export const Candidates = (props: { vocab: Vocabulary }) => {
-  const [candidates, setCandidates] = useState<Candidate[]>()
+  const [everything, setEverything] = useState<Candidate[]>()
+  const [undo, setUndo] = useState<{ id: number; title: string; stage: string }>()
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
@@ -126,10 +133,31 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
   const [meetingId, setMeetingId] = useState("")
 
   const load = () => {
-    review.candidates().then((r) => (r.ok ? setCandidates(r.data) : setError(r.message)))
+    review.candidates(true).then((r) => (r.ok ? setEverything(r.data) : setError(r.message)))
     review.meetings().then((r) => r.ok && setMeetings(r.data))
   }
   useEffect(load, [])
+
+  const candidates = useMemo(() => everything?.filter((c) => c.stage !== "archived"), [everything])
+  const listed = useMemo(() => new Set((candidates || []).flatMap((c) => (c.idea ? [c.idea.number] : []))), [candidates])
+  const removed = useMemo(() => new Set((everything || []).flatMap((c) => (c.stage === "archived" && c.idea ? [c.idea.number] : []))), [everything])
+
+  // Removing archives the candidate, which keeps its ratings, decisions and history if it is added back.
+  const remove = async (c: Candidate) => {
+    const result = await review.updateCandidate(c.id, { stage: "archived" })
+    if (!result.ok) return setError(result.message)
+    setSelected(selected.filter((s) => s !== c.id))
+    setNotice(undefined)
+    setUndo({ id: c.id, title: c.title, stage: c.stage })
+    load()
+  }
+  const restore = async () => {
+    if (!undo) return
+    const result = await review.updateCandidate(undo.id, { stage: undo.stage })
+    if (!result.ok) return setError(result.message)
+    setUndo(undefined)
+    load()
+  }
 
   const owners = useMemo(() => Array.from(new Set((candidates || []).map((c) => c.owner).filter(Boolean))).sort(), [candidates])
   const areas = useMemo(() => Array.from(new Set((candidates || []).flatMap((c) => c.idea?.tags || []))).sort(), [candidates])
@@ -225,7 +253,18 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
         </div>
       </details>
 
-      {adding && <AddCandidate vocab={props.vocab} onAdded={(id) => (location.hash = `#/candidate/${id}`)} />}
+      {adding && (
+        <AddCandidate
+          vocab={props.vocab}
+          listed={listed}
+          removed={removed}
+          onAdded={(title) => {
+            setUndo(undefined)
+            setNotice(`Added "${title}".`)
+            load()
+          }}
+        />
+      )}
 
       {selected.length > 0 && (
         <div className="r-toolbar r-toolbar--sticky" aria-live="polite">
@@ -255,6 +294,14 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
         </div>
       )}
       {notice && <p className="r-status r-status--ok">{notice}</p>}
+      {undo && (
+        <p className="r-status r-status--ok" aria-live="polite">
+          Removed &quot;{undo.title}&quot; from candidates.{" "}
+          <Button size="small" variant="tertiary" onClick={restore}>
+            Undo
+          </Button>
+        </p>
+      )}
       <ErrorText message={error} />
 
       {visible.length === 0 ? (
@@ -271,6 +318,9 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
               <th scope="col">Team value</th>
               <th scope="col">Readiness</th>
               <th scope="col">Status</th>
+              <th scope="col">
+                <span className="sr-only">Remove</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -294,6 +344,11 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
                 </td>
                 <td data-label="Status">
                   <CandidateStatus c={c} />
+                </td>
+                <td data-label="">
+                  <Button size="small" variant="tertiary" onClick={() => remove(c)}>
+                    Remove
+                  </Button>
                 </td>
               </tr>
             ))}

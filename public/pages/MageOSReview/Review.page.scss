@@ -238,6 +238,10 @@
 .r-grow {
   flex: 1 1 16rem;
 }
+.r-browse {
+  max-height: 24rem;
+  overflow-y: auto;
+}
 .r-filters__end {
   margin-left: auto;
 }

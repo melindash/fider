@@ -144,7 +144,7 @@ func mageosReviewAddCandidate(ctx context.Context, c *cmd.MageOSReviewAddCandida
 			err := trx.Scalar(&c.Result, `SELECT id FROM mageos_review_candidates WHERE tenant_id = $1 AND post_id = $2`, tenant.ID, c.PostID)
 			if err == nil {
 				c.Existed = true
-				return nil
+				return mageosReviewRestoreArchived(trx, tenant, user, c.Result)
 			}
 			if errors.Cause(err) != app.ErrNotFound {
 				return errors.Wrap(err, "failed to look up candidate")
@@ -169,6 +169,21 @@ func mageosReviewAddCandidate(ctx context.Context, c *cmd.MageOSReviewAddCandida
 		return mageosReviewLog(trx, tenant, user, c.Result, 0, "candidate", c.Result, "create", map[string]mageosReviewChange{
 			"title": {To: c.Title}, "postId": {To: strconv.Itoa(c.PostID)},
 		})
+	})
+}
+
+// Removing a candidate archives it, so adding the same idea again brings it back with its ratings and history.
+func mageosReviewRestoreArchived(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User, id int) error {
+	restored, err := trx.Execute(`UPDATE mageos_review_candidates SET stage = 'new', updated_at = now()
+		WHERE tenant_id = $1 AND id = $2 AND stage = 'archived'`, tenant.ID, id)
+	if err != nil {
+		return errors.Wrap(err, "failed to restore candidate")
+	}
+	if restored == 0 {
+		return nil
+	}
+	return mageosReviewLog(trx, tenant, user, id, 0, "candidate", id, "update", map[string]mageosReviewChange{
+		"stage": {From: "archived", To: "new"},
 	})
 }
 
