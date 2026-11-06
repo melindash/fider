@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@fider/components"
-import { Candidate, Meeting, Vocabulary, review } from "./api"
+import { Candidate, Meeting, RatingCount, Vocabulary, review } from "./api"
 import { Badge, Empty, ErrorText, SampleBadge } from "./components"
-import { ideaStatusLabel, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
+import { deliveryLabels, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
 
 const AddCandidate = (props: { vocab: Vocabulary; onAdded: (id: number) => void }) => {
   const [query, setQuery] = useState("")
@@ -32,12 +32,11 @@ const AddCandidate = (props: { vocab: Vocabulary; onAdded: (id: number) => void 
   }
 
   return (
-    <details className="r-panel">
-      <summary>Add candidates</summary>
+    <div className="r-panel">
       <div className="r-add">
         <div className="r-field">
           <label htmlFor="r-idea-search">From the ideas board</label>
-          <input id="r-idea-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search ideas by title" />
+          <input id="r-idea-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search ideas by title" autoFocus />
           {results.length > 0 && (
             <ul className="r-list r-list--compact">
               {results.map((idea) => (
@@ -73,9 +72,44 @@ const AddCandidate = (props: { vocab: Vocabulary; onAdded: (id: number) => void 
         </fieldset>
       </div>
       <ErrorText message={error} />
-    </details>
+    </div>
   )
 }
+
+const Tally = (props: { counts: RatingCount }) => {
+  const { strong, moderate, weak } = props.counts
+  if (strong + moderate + weak === 0) return <span className="r-muted">Not rated</span>
+  return (
+    <span className="r-tally">
+      {strong > 0 && <span className="r-tally__strong">{strong} strong</span>}
+      {moderate > 0 && <span className="r-tally__moderate">{moderate} moderate</span>}
+      {weak > 0 && <span className="r-tally__weak">{weak} weak</span>}
+    </span>
+  )
+}
+
+const CandidateStatus = (props: { c: Candidate }) => {
+  const { c } = props
+  if (!c.latestOutcome) return <Badge>{label(stageLabels, c.stage)}</Badge>
+  return (
+    <>
+      <Badge tone={c.latestOutcome === "prioritize" ? "final" : "muted"}>{label(outcomeLabels, c.latestOutcome)}</Badge>
+      {c.latestOutcome === "prioritize" && <div className="r-muted">{label(deliveryLabels, c.delivery)}</div>}
+    </>
+  )
+}
+
+// Prioritized and declined are settled; every other outcome (defer, investigate, …) still comes back for a decision.
+const isSettled = (c: Candidate) => c.latestOutcome === "prioritize" || c.latestOutcome === "decline"
+
+const views = [
+  { key: "open", title: "Needs a decision", test: (c: Candidate) => !isSettled(c) },
+  { key: "prioritized", title: "Prioritized", test: (c: Candidate) => c.latestOutcome === "prioritize" },
+  { key: "all", title: "All", test: () => true },
+]
+
+// Manual initiatives have no votes, so they sort after board ideas rather than tying with zero-vote ideas.
+const byVotes = (a: Candidate, b: Candidate) => (b.idea?.votes ?? -1) - (a.idea?.votes ?? -1) || a.title.localeCompare(b.title)
 
 export const Candidates = (props: { vocab: Vocabulary }) => {
   const [candidates, setCandidates] = useState<Candidate[]>()
@@ -83,11 +117,12 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [selected, setSelected] = useState<number[]>([])
+  const [adding, setAdding] = useState(false)
+  const [view, setView] = useState("open")
   const [text, setText] = useState("")
   const [track, setTrack] = useState("")
-  const [stage, setStage] = useState("")
   const [owner, setOwner] = useState("")
-  const [readiness, setReadiness] = useState("")
+  const [card, setCard] = useState("")
   const [meetingId, setMeetingId] = useState("")
 
   const load = () => {
@@ -99,16 +134,20 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
   const owners = useMemo(() => Array.from(new Set((candidates || []).map((c) => c.owner).filter(Boolean))).sort(), [candidates])
   const areas = useMemo(() => Array.from(new Set((candidates || []).flatMap((c) => c.idea?.tags || []))).sort(), [candidates])
 
-  const visible = (candidates || []).filter((c) => {
+  const matchesFilters = (c: Candidate) => {
     const needle = text.toLowerCase()
     if (needle && !`${c.title} ${c.problem} ${c.idea?.number ?? ""}`.toLowerCase().includes(needle)) return false
     if (track && !(c.track === track || c.idea?.tags.includes(track))) return false
-    if (stage && c.stage !== stage) return false
     if (owner === "-" ? c.owner !== "" : owner && c.owner !== owner) return false
-    if (readiness === "complete" && c.missing.length > 0) return false
-    if (readiness === "missing" && c.missing.length === 0) return false
+    if (card === "complete" && c.missing.length > 0) return false
+    if (card === "missing" && c.missing.length === 0) return false
     return true
-  })
+  }
+
+  const filtered = (candidates || []).filter(matchesFilters)
+  const current = views.find((v) => v.key === view) || views[0]
+  const visible = filtered.filter(current.test).sort(byVotes)
+  const extraFilters = [track, owner, card].filter(Boolean).length
 
   const toggle = (id: number) => setSelected(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id])
 
@@ -137,92 +176,101 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
 
   return (
     <div>
-      <AddCandidate vocab={props.vocab} onAdded={(id) => (location.hash = `#/candidate/${id}`)} />
-
       <div className="r-filters" role="search">
         <input type="search" aria-label="Search candidates" placeholder="Search" value={text} onChange={(e) => setText(e.target.value)} />
-        <select aria-label="Track or category" value={track} onChange={(e) => setTrack(e.target.value)}>
-          <option value="">All tracks and categories</option>
-          {props.vocab.tracks.map((t) => (
-            <option key={t} value={t}>
-              {trackLabels[t]}
-            </option>
+        <div className="r-seg" role="group" aria-label="Show">
+          {views.map((v) => (
+            <button key={v.key} type="button" aria-pressed={view === v.key} onClick={() => setView(v.key)}>
+              {v.title} <span className="r-seg__count">{filtered.filter(v.test).length}</span>
+            </button>
           ))}
-          {areas.map((a) => (
-            <option key={a} value={a}>
-              Board category: {a}
-            </option>
-          ))}
-        </select>
-        <select aria-label="Review stage" value={stage} onChange={(e) => setStage(e.target.value)}>
-          <option value="">All stages</option>
-          {props.vocab.stages
-            .filter((s) => s !== "archived")
-            .map((s) => (
-              <option key={s} value={s}>
-                {stageLabels[s]}
-              </option>
-            ))}
-        </select>
-        <select aria-label="Owner" value={owner} onChange={(e) => setOwner(e.target.value)}>
-          <option value="">Any owner</option>
-          <option value="-">No owner</option>
-          {owners.map((o) => (
-            <option key={o} value={o}>
-              {o}
-            </option>
-          ))}
-        </select>
-        <select aria-label="Readiness" value={readiness} onChange={(e) => setReadiness(e.target.value)}>
-          <option value="">Any readiness</option>
-          <option value="complete">Card complete</option>
-          <option value="missing">Missing information</option>
-        </select>
+        </div>
+        <span className="r-filters__end">
+          <Button size="small" variant={adding ? "secondary" : "primary"} onClick={() => setAdding(!adding)}>
+            {adding ? "Close" : "Add candidates"}
+          </Button>
+        </span>
       </div>
 
-      <div className="r-toolbar" aria-live="polite">
-        <span>{selected.length} selected</span>
-        <Button
-          size="small"
-          disabled={selected.length === 0}
-          onClick={() => {
-            location.hash = `#/compare/${selected.join(",")}`
-          }}
-        >
-          Compare
-        </Button>
-        <select aria-label="Meeting to add to" value={meetingId} onChange={(e) => setMeetingId(e.target.value)}>
-          <option value="">Choose a meeting…</option>
-          {meetings.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.heldOn} {m.purpose}
-            </option>
-          ))}
-        </select>
-        <Button size="small" disabled={selected.length === 0 || !meetingId} onClick={shortlist}>
-          Add to meeting shortlist
-        </Button>
-        {notice && <span className="r-status r-status--ok">{notice}</span>}
-      </div>
+      <details className="r-more" open={extraFilters > 0 || undefined}>
+        <summary>More filters{extraFilters > 0 && ` (${extraFilters})`}</summary>
+        <div className="r-filters">
+          <select aria-label="Track or category" value={track} onChange={(e) => setTrack(e.target.value)}>
+            <option value="">All tracks and categories</option>
+            {props.vocab.tracks.map((t) => (
+              <option key={t} value={t}>
+                {trackLabels[t]}
+              </option>
+            ))}
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                Board category: {a}
+              </option>
+            ))}
+          </select>
+          <select aria-label="Owner" value={owner} onChange={(e) => setOwner(e.target.value)}>
+            <option value="">Any owner</option>
+            <option value="-">No owner</option>
+            {owners.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+          <select aria-label="Card completeness" value={card} onChange={(e) => setCard(e.target.value)}>
+            <option value="">Any card</option>
+            <option value="complete">Card complete</option>
+            <option value="missing">Missing information</option>
+          </select>
+        </div>
+      </details>
+
+      {adding && <AddCandidate vocab={props.vocab} onAdded={(id) => (location.hash = `#/candidate/${id}`)} />}
+
+      {selected.length > 0 && (
+        <div className="r-toolbar r-toolbar--sticky" aria-live="polite">
+          <span>{selected.length} selected</span>
+          <Button
+            size="small"
+            onClick={() => {
+              location.hash = `#/compare/${selected.join(",")}`
+            }}
+          >
+            Compare
+          </Button>
+          <select aria-label="Meeting to add to" value={meetingId} onChange={(e) => setMeetingId(e.target.value)}>
+            <option value="">Choose a meeting…</option>
+            {meetings.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.heldOn} {m.purpose}
+              </option>
+            ))}
+          </select>
+          <Button size="small" disabled={!meetingId} onClick={shortlist}>
+            Add to meeting shortlist
+          </Button>
+          <Button size="small" variant="tertiary" onClick={() => setSelected([])}>
+            Clear
+          </Button>
+        </div>
+      )}
+      {notice && <p className="r-status r-status--ok">{notice}</p>}
       <ErrorText message={error} />
 
       {visible.length === 0 ? (
-        <Empty>No candidates match. Add ideas from the board or enter an initiative above.</Empty>
+        <Empty>{candidates.length === 0 ? "No candidates yet. Use Add candidates to pull ideas from the board." : "No candidates match."}</Empty>
       ) : (
-        <table className="r-table r-table--stack">
+        <table className="r-table r-table--stack r-table--candidates">
           <thead>
             <tr>
               <th scope="col">
                 <span className="sr-only">Select</span>
               </th>
               <th scope="col">Candidate</th>
-              <th scope="col">Track / categories</th>
               <th scope="col">Votes</th>
-              <th scope="col">Board status</th>
-              <th scope="col">Review stage</th>
-              <th scope="col">Owner</th>
-              <th scope="col">Card</th>
-              <th scope="col">Last decision</th>
+              <th scope="col">Team value</th>
+              <th scope="col">Readiness</th>
+              <th scope="col">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -235,21 +283,17 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
                   <a href={`#/candidate/${c.id}`}>{c.title}</a>
                   {c.idea && <span className="r-muted"> #{c.idea.number}</span>}
                   {c.isSample && <SampleBadge />}
-                </td>
-                <td data-label="Track / categories">
-                  {trackLabels[c.track]}
-                  {c.idea && c.idea.tags.length > 0 && <div className="r-muted">{c.idea.tags.join(", ")}</div>}
+                  <div className="r-hint">{c.idea && c.idea.tags.length > 0 ? c.idea.tags.join(", ") : trackLabels[c.track]}</div>
                 </td>
                 <td data-label="Votes">{c.idea ? c.idea.votes : <span className="r-muted">n/a</span>}</td>
-                <td data-label="Board status">{c.idea ? ideaStatusLabel(c.idea.status) : <span className="r-muted">not on board</span>}</td>
-                <td data-label="Review stage">{label(stageLabels, c.stage)}</td>
-                <td data-label="Owner">{c.owner || <span className="r-muted">none</span>}</td>
-                <td data-label="Card">
-                  {c.missing.length === 0 ? <Badge tone="final">Complete</Badge> : <Badge tone="warn">{c.missing.length} missing</Badge>}
+                <td data-label="Team value">
+                  <Tally counts={c.valueRatings} />
                 </td>
-                <td data-label="Last decision">
-                  {c.latestOutcome ? `${outcomeLabels[c.latestOutcome]} (${c.latestDecidedAt})` : <span className="r-muted">none</span>}
-                  {c.latestOutcome === "prioritize" && <div className="r-muted">{c.delivery === "none" ? "Not scheduled" : c.delivery.replace("_", " ")}</div>}
+                <td data-label="Readiness">
+                  <Tally counts={c.readinessRatings} />
+                </td>
+                <td data-label="Status">
+                  <CandidateStatus c={c} />
                 </td>
               </tr>
             ))}

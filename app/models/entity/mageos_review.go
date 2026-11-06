@@ -52,6 +52,15 @@ type MageOSReviewCandidate struct {
 	LatestDecided  string            `json:"latestDecidedAt"`
 	OpenActions    int               `json:"openActions"`
 	Assessors      int               `json:"assessors"`
+	Value          ReviewRatingCount `json:"valueRatings"`
+	Readiness      ReviewRatingCount `json:"readinessRatings"`
+}
+
+// ReviewRatingCount tallies the team's ratings across one criteria group.
+type ReviewRatingCount struct {
+	Strong   int `json:"strong"`
+	Moderate int `json:"moderate"`
+	Weak     int `json:"weak"`
 }
 
 // MageOSReviewAssessment is one team member's rating of one criterion.

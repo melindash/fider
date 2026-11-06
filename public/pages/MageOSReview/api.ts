@@ -79,6 +79,14 @@ export interface Candidate {
   latestDecidedAt: string
   openActions: number
   assessors: number
+  valueRatings: RatingCount
+  readinessRatings: RatingCount
+}
+
+export interface RatingCount {
+  strong: number
+  moderate: number
+  weak: number
 }
 
 export interface Assessment {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/getfider/fider/app/models/cmd"
+	"github.com/getfider/fider/app/models/entity"
 	"github.com/getfider/fider/app/models/query"
 	. "github.com/getfider/fider/app/pkg/assert"
 	"github.com/getfider/fider/app/pkg/bus"
@@ -56,6 +57,35 @@ func TestMageOSReview_RejectsUnknownFieldsAndValues(t *testing.T) {
 	Expect(bus.Dispatch(jonSnowCtx, &cmd.MageOSReviewUpdateCandidate{ID: add.Result, Fields: map[string]string{"is_sample": "true"}})).IsNotNil()
 	Expect(bus.Dispatch(jonSnowCtx, &cmd.MageOSReviewUpdateCandidate{ID: add.Result, Fields: map[string]string{"stage": "approved"}})).IsNotNil()
 	Expect(bus.Dispatch(jonSnowCtx, &cmd.MageOSReviewSetAssessment{CandidateID: add.Result, Criterion: "benefit", Rating: "10"})).IsNotNil()
+}
+
+func TestMageOSReview_ListCountsRatingsPerCriteriaGroup(t *testing.T) {
+	SetupDatabaseTest(t)
+	defer TeardownDatabaseTest()
+
+	rated := &cmd.MageOSReviewAddCandidate{Title: "Rated"}
+	unrated := &cmd.MageOSReviewAddCandidate{Title: "Unrated"}
+	bus.MustDispatch(jonSnowCtx, rated, unrated)
+	bus.MustDispatch(jonSnowCtx,
+		&cmd.MageOSReviewSetAssessment{CandidateID: rated.Result, Criterion: "benefit", Rating: "strong"},
+		&cmd.MageOSReviewSetAssessment{CandidateID: rated.Result, Criterion: "demand", Rating: "weak"},
+		&cmd.MageOSReviewSetAssessment{CandidateID: rated.Result, Criterion: "feasibility", Rating: "moderate"},
+		&cmd.MageOSReviewSetAssessment{CandidateID: rated.Result, Criterion: "people", Rating: "unknown"},
+	)
+	bus.MustDispatch(aryaStarkCtx, &cmd.MageOSReviewSetAssessment{CandidateID: rated.Result, Criterion: "benefit", Rating: "strong"})
+
+	list := &query.MageOSReviewListCandidates{}
+	bus.MustDispatch(jonSnowCtx, list)
+	Expect(list.Result).HasLen(2)
+	for _, c := range list.Result {
+		if c.ID == rated.Result {
+			Expect(c.Value).Equals(entity.ReviewRatingCount{Strong: 2, Weak: 1})
+			Expect(c.Readiness).Equals(entity.ReviewRatingCount{Moderate: 1})
+		} else {
+			Expect(c.Value).Equals(entity.ReviewRatingCount{})
+			Expect(c.Readiness).Equals(entity.ReviewRatingCount{})
+		}
+	}
 }
 
 func TestMageOSReview_MeetingWorkflow(t *testing.T) {

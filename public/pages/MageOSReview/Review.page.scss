@@ -238,6 +238,82 @@
 .r-grow {
   flex: 1 1 16rem;
 }
+.r-filters__end {
+  margin-left: auto;
+}
+
+.r-seg {
+  display: inline-flex;
+  border: 1px solid var(--colors-gray-300);
+  border-radius: 6px;
+  overflow: hidden;
+  button {
+    padding: 0.4rem 0.75rem;
+    border: 0;
+    border-left: 1px solid var(--colors-gray-300);
+    background: transparent;
+    color: var(--colors-gray-800);
+    font-size: 0.85rem;
+    cursor: pointer;
+    &:first-child {
+      border-left: 0;
+    }
+    &[aria-pressed="true"] {
+      background: var(--colors-primary-base);
+      color: var(--colors-white);
+      font-weight: 600;
+      .r-seg__count {
+        color: inherit;
+      }
+    }
+  }
+}
+.r-seg__count {
+  margin-left: 0.25rem;
+  color: var(--colors-gray-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.r-more {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  summary {
+    cursor: pointer;
+    color: var(--colors-gray-700);
+  }
+}
+
+.r-toolbar--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--colors-gray-300);
+  border-radius: 6px;
+  background: var(--colors-gray-50);
+}
+
+.r-tally {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.r-tally__strong {
+  color: var(--colors-green-800);
+  font-weight: 600;
+}
+.r-tally__moderate {
+  color: var(--colors-gray-800);
+}
+.r-tally__weak {
+  color: var(--colors-red-700);
+}
+
+.r-table--candidates td[data-label="Votes"] {
+  font-variant-numeric: tabular-nums;
+}
 
 // position: relative keeps visually hidden labels inside the scroll box instead of widening the page.
 .r-scroll {

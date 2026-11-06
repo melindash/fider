@@ -553,6 +553,12 @@ type dbMageOSReviewCandidate struct {
 	LatestDecided   string         `db:"latest_decided"`
 	OpenActions     int            `db:"open_actions"`
 	Assessors       int            `db:"assessors"`
+	ValueStrong     int            `db:"value_strong"`
+	ValueModerate   int            `db:"value_moderate"`
+	ValueWeak       int            `db:"value_weak"`
+	ReadyStrong     int            `db:"ready_strong"`
+	ReadyModerate   int            `db:"ready_moderate"`
+	ReadyWeak       int            `db:"ready_weak"`
 }
 
 func (d *dbMageOSReviewCandidate) toModel() *entity.MageOSReviewCandidate {
@@ -563,6 +569,8 @@ func (d *dbMageOSReviewCandidate) toModel() *entity.MageOSReviewCandidate {
 		Reviewer: d.Reviewer, OperatingNeeds: d.OperatingNeeds, OpenQuestions: d.OpenQuestions, Links: d.Links,
 		IsSample: d.IsSample, CreatedAt: d.CreatedAt, UpdatedAt: d.UpdatedAt,
 		LatestOutcome: d.LatestOutcome, LatestDecided: d.LatestDecided, OpenActions: d.OpenActions, Assessors: d.Assessors,
+		Value:     entity.ReviewRatingCount{Strong: d.ValueStrong, Moderate: d.ValueModerate, Weak: d.ValueWeak},
+		Readiness: entity.ReviewRatingCount{Strong: d.ReadyStrong, Moderate: d.ReadyModerate, Weak: d.ReadyWeak},
 	}
 	if d.PostID > 0 {
 		c.Idea = &entity.MageOSReviewIdea{
@@ -585,7 +593,8 @@ func (d *dbMageOSReviewCandidate) toModel() *entity.MageOSReviewCandidate {
 }
 
 // Linked ideas are read live; the vote total matches the board (signed-in + anonymous + carried-over GitHub votes).
-const mageosReviewCandidateSelect = `
+// Criteria lists come from the mageos vocabulary, not user input, so formatting them into the SQL is safe.
+var mageosReviewCandidateSelect = fmt.Sprintf(`
 	SELECT c.id, COALESCE(c.post_id, 0) AS post_id, c.title, c.source_url, c.track, c.stage, c.delivery,
 		c.problem, c.beneficiaries, c.outcome, c.scope, c.exclusions, c.evidence, c.dependencies, c.risks, c.effort,
 		c.owner, c.reviewer, c.operating_needs, c.open_questions, c.links, c.is_sample, c.created_at, c.updated_at,
@@ -599,14 +608,33 @@ const mageosReviewCandidateSelect = `
 			WHERE pt.tenant_id = c.tenant_id AND pt.post_id = c.post_id), '{}') AS idea_tags,
 		COALESCE(latest.outcome, '') AS latest_outcome, COALESCE(to_char(latest.finalized_at, 'YYYY-MM-DD'), '') AS latest_decided,
 		(SELECT COUNT(*) FROM mageos_review_actions a WHERE a.candidate_id = c.id AND a.done_at IS NULL) AS open_actions,
-		(SELECT COUNT(DISTINCT s.user_id) FROM mageos_review_assessments s WHERE s.candidate_id = c.id) AS assessors
+		(SELECT COUNT(DISTINCT s.user_id) FROM mageos_review_assessments s WHERE s.candidate_id = c.id) AS assessors,
+		r.value_strong, r.value_moderate, r.value_weak, r.ready_strong, r.ready_moderate, r.ready_weak
 	FROM mageos_review_candidates c
 	LEFT JOIN posts p ON p.id = c.post_id AND p.tenant_id = c.tenant_id
 	LEFT JOIN LATERAL (
 		SELECT i.outcome, i.finalized_at FROM mageos_review_items i
 		WHERE i.candidate_id = c.id AND i.finalized_at IS NOT NULL ORDER BY i.finalized_at DESC LIMIT 1
 	) latest ON true
-	WHERE c.tenant_id = $1`
+	CROSS JOIN LATERAL (
+		SELECT
+			COUNT(*) FILTER (WHERE s.criterion IN (%[1]s) AND s.rating = 'strong') AS value_strong,
+			COUNT(*) FILTER (WHERE s.criterion IN (%[1]s) AND s.rating = 'moderate') AS value_moderate,
+			COUNT(*) FILTER (WHERE s.criterion IN (%[1]s) AND s.rating = 'weak') AS value_weak,
+			COUNT(*) FILTER (WHERE s.criterion IN (%[2]s) AND s.rating = 'strong') AS ready_strong,
+			COUNT(*) FILTER (WHERE s.criterion IN (%[2]s) AND s.rating = 'moderate') AS ready_moderate,
+			COUNT(*) FILTER (WHERE s.criterion IN (%[2]s) AND s.rating = 'weak') AS ready_weak
+		FROM mageos_review_assessments s WHERE s.tenant_id = c.tenant_id AND s.candidate_id = c.id
+	) r
+	WHERE c.tenant_id = $1`, sqlStringList(mageos.ReviewValueCriteria), sqlStringList(mageos.ReviewReadinessCriteria))
+
+func sqlStringList(values []string) string {
+	quoted := make([]string, len(values))
+	for i, v := range values {
+		quoted[i] = "'" + strings.ReplaceAll(v, "'", "''") + "'"
+	}
+	return strings.Join(quoted, ", ")
+}
 
 func mageosReviewSelectCandidates(trx *dbx.Trx, tenantID int, where string, args ...any) ([]*entity.MageOSReviewCandidate, error) {
 	rows := []*dbMageOSReviewCandidate{}
