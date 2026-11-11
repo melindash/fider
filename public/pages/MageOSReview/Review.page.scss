@@ -148,8 +148,12 @@
 }
 
 .r-decision--closed {
-  padding-top: 0.6rem;
-  padding-bottom: 0.6rem;
+  margin: 0.5rem 0;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  h3 {
+    font-size: 1rem;
+  }
 }
 .r-decision__toggle {
   background: none;

@@ -18,7 +18,7 @@ const textFields: { key: string; multiline?: boolean; hint?: string }[] = [
   { key: "evidence", multiline: true, hint: "Discussions, support threads, data. One link per line." },
   { key: "dependencies", multiline: true },
   { key: "risks", multiline: true },
-  { key: "owner", hint: "The volunteer who leads the task. Pick from Volunteers below or type a name." },
+  { key: "owner", hint: "The volunteer who leads the task. Type a name, or use Make task owner on the People & actions tab." },
   { key: "reviewer", hint: "The Tech Team member volunteers go to with questions." },
   { key: "operatingNeeds", multiline: true, hint: "Maintenance, moderation, hosting, people needed after launch." },
   { key: "openQuestions", multiline: true },
@@ -146,8 +146,12 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
       key: "people",
       title: "People & actions",
       note:
-        [detail.volunteers?.length ? `${detail.volunteers.length} volunteers` : "", openActions ? `${openActions} open` : ""].filter(Boolean).join(", ") ||
-        undefined,
+        [
+          detail.volunteers?.length ? `${detail.volunteers.length} ${detail.volunteers.length === 1 ? "volunteer" : "volunteers"}` : "",
+          openActions ? `${openActions} open` : "",
+        ]
+          .filter(Boolean)
+          .join(", ") || undefined,
     },
     { key: "decisions", title: "Decisions & history", note: detail.decisions.length ? String(detail.decisions.length) : undefined },
   ]
@@ -276,7 +280,7 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
       )}
 
       {tab === "people" && (
-        <section className="r-card__panel r-card__grid" role="tabpanel" id="r-card-panel-people" aria-labelledby="r-card-tab-people">
+        <section className="r-card__panel" role="tabpanel" id="r-card-panel-people" aria-labelledby="r-card-tab-people">
           <div>
             <h3>Volunteers</h3>
             <Volunteers candidateId={c.id} volunteers={detail.volunteers ?? []} owner={c.owner} onChanged={load} onSetOwner={save("owner")} />

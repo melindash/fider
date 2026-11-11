@@ -115,10 +115,12 @@ export const Volunteers = (props: {
         </div>
         {kind === "github" ? (
           <div className="r-inline-form">
-            <div className="r-field">
+            <div className="r-field r-grow">
               <label htmlFor="r-volunteer-github">GitHub username</label>
               <input
                 id="r-volunteer-github"
+                type="text"
+                autoFocus
                 value={github}
                 placeholder="octocat or https://github.com/octocat"
                 onChange={(e) => setGitHub(e.target.value)}
