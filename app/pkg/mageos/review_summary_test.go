@@ -26,12 +26,12 @@ func TestReviewMeetingSummary(t *testing.T) {
 	html, text := mageos.ReviewMeetingSummary("https://ideas.example", meeting, items)
 
 	Expect(strings.Contains(text, "1 of 2 decisions final.")).IsTrue()
-	Expect(strings.Contains(text, "- Outcome: Prioritize (not scheduled). Final, recorded by Jon Snow")).IsTrue()
+	Expect(strings.Contains(text, "- Outcome: Accept (prioritize). Final, recorded by Jon Snow")).IsTrue()
 	Expect(strings.Contains(text, "https://ideas.example/posts/7/faster-grid (12 votes)")).IsTrue()
 	Expect(strings.Contains(text, "  - Unassigned: Scope it (review 2026-11-19)")).IsTrue()
 	Expect(strings.Contains(text, "Done already")).IsFalse()
 	Expect(strings.Contains(text, "Meetup kit (sample)")).IsTrue()
-	Expect(strings.Contains(text, "Defer. DRAFT, not final")).IsTrue()
+	Expect(strings.Contains(text, "Park (defer). DRAFT, not final")).IsTrue()
 	Expect(strings.Contains(text, "internal discussion")).IsFalse()
 	Expect(strings.Contains(html, "Strong demand &lt;b&gt;")).IsTrue()
 }

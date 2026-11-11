@@ -1,5 +1,30 @@
-import React, { useEffect, useId, useState } from "react"
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from "react"
+import { Modal } from "@fider/components"
 import { ApiResult } from "./api"
+
+// One line when empty so a card full of blank fields stays short; grows with the text instead of scrolling.
+export const AutoTextarea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight + 2}px`
+  }, [props.value])
+  return <textarea ref={ref} rows={1} {...props} className={`r-autogrow ${props.className ?? ""}`} />
+}
+
+export const ReviewModal = (props: { title: string; isOpen: boolean; onClose: () => void; size?: "small" | "large"; children: React.ReactNode }) => (
+  <Modal.Window isOpen={props.isOpen} onClose={props.onClose} size={props.size ?? "small"} center={false} className="r-modal">
+    <Modal.Header>
+      <span className="r-modal__title">{props.title}</span>
+      <button type="button" className="r-modal__close" aria-label="Close" onClick={props.onClose}>
+        ×
+      </button>
+    </Modal.Header>
+    <Modal.Content>{props.children}</Modal.Content>
+  </Modal.Window>
+)
 
 type Save = (value: string) => Promise<ApiResult<unknown>>
 
@@ -78,7 +103,7 @@ export const TextField = (props: TextFieldProps) => {
         </span>
       )}
       {props.multiline ? (
-        <textarea {...common} rows={3} onChange={(e) => f.setValue(e.target.value)} />
+        <AutoTextarea {...common} onChange={(e) => f.setValue(e.target.value)} />
       ) : (
         <input {...common} type="text" onChange={(e) => f.setValue(e.target.value)} />
       )}

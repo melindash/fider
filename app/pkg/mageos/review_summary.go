@@ -8,12 +8,13 @@ import (
 	"github.com/getfider/fider/app/models/entity"
 )
 
+// Same wording as the review tool's outcome menu (public/pages/MageOSReview/labels.ts).
 var reviewOutcomeLabels = map[string]string{
-	"needs_clarification": "Needs clarification",
-	"seek_comments":       "Seek community comments",
-	"investigate":         "Investigate / scope",
-	"prioritize":          "Prioritize",
-	"defer":               "Defer",
+	"needs_clarification": "Not decided: needs clarification",
+	"seek_comments":       "Not decided: seek community comments",
+	"investigate":         "Not decided: investigate / scope",
+	"prioritize":          "Accept (prioritize)",
+	"defer":               "Park (defer)",
 	"decline":             "Decline",
 }
 
@@ -21,13 +22,6 @@ var reviewEscalationLabels = map[string]string{
 	"technical_team": "Technical team input requested",
 	"board_liaison":  "Escalated to the Board liaison",
 	"board":          "Escalated to the Board",
-}
-
-var reviewDeliveryLabels = map[string]string{
-	"none":           "not scheduled",
-	"scheduled":      "scheduled",
-	"in_development": "in development",
-	"delivered":      "delivered",
 }
 
 type summaryLine struct{ label, value string }
@@ -70,9 +64,6 @@ func ReviewMeetingSummary(baseURL string, meeting *entity.MageOSReviewMeeting, i
 		outcome := "No outcome yet"
 		if label, ok := reviewOutcomeLabels[item.Outcome]; ok {
 			outcome = label
-			if item.Outcome == "prioritize" {
-				outcome += " (" + reviewDeliveryLabels[c.Delivery] + ")"
-			}
 		}
 		if item.FinalizedAt != "" {
 			outcome += ". Final, recorded by " + item.FinalizedByName

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { Button } from "@fider/components"
 import { ApiResult, Volunteer, review } from "./api"
-import { Badge, ErrorText } from "./components"
+import { Badge, ErrorText, ReviewModal } from "./components"
 
 export const volunteerLabel = (v: Volunteer): string => {
   if (v.userName && v.githubLogin) return `${v.userName} (@${v.githubLogin})`
@@ -49,6 +49,7 @@ export const Volunteers = (props: {
 }) => {
   const [kind, setKind] = useState<"github" | "fider">("github")
   const [github, setGitHub] = useState("")
+  const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string>()
 
   const add = async (input: { userId?: number; github?: string }) => {
@@ -56,6 +57,7 @@ export const Volunteers = (props: {
     if (!result.ok) return setError(result.message)
     setError(undefined)
     setGitHub("")
+    setAdding(false)
     props.onChanged()
   }
   const remove = async (id: number) => {
@@ -98,8 +100,11 @@ export const Volunteers = (props: {
         </ul>
       )}
 
-      <fieldset className="r-volunteers__add">
-        <legend>Add a volunteer</legend>
+      <Button size="small" onClick={() => setAdding(true)}>
+        Add volunteer
+      </Button>
+      <ReviewModal title="Add a volunteer" isOpen={adding} onClose={() => setAdding(false)}>
+        <p className="r-hint">Identify them by GitHub username or Fider account. Either is enough.</p>
         <div className="r-seg" role="group" aria-label="Identify the volunteer by">
           <Button size="small" variant={kind === "github" ? "primary" : "secondary"} onClick={() => setKind("github")}>
             GitHub username
@@ -129,8 +134,9 @@ export const Volunteers = (props: {
         ) : (
           <FiderAccountPicker onPick={(userId) => add({ userId })} />
         )}
-      </fieldset>
-      <ErrorText message={error} />
+        <ErrorText message={error} />
+      </ReviewModal>
+      {!adding && <ErrorText message={error} />}
     </div>
   )
 }

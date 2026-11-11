@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@fider/components"
 import { Candidate, Meeting, RatingCount, Vocabulary, review } from "./api"
-import { Badge, Empty, ErrorText, SampleBadge } from "./components"
+import { Badge, Empty, ErrorText, ReviewModal, SampleBadge } from "./components"
 import { ideaStatusLabel, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
 
 type BoardIdea = { number: number; title: string; votesCount: number }
@@ -34,7 +34,7 @@ const AddCandidate = (props: { vocab: Vocabulary; listed: Set<number>; removed: 
   const available = (results || []).filter((idea) => !props.listed.has(idea.number))
 
   return (
-    <div className="r-panel">
+    <div>
       <div className="r-add">
         <div className="r-field">
           <label htmlFor="r-idea-search">From the ideas board</label>
@@ -214,8 +214,8 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
           ))}
         </div>
         <span className="r-filters__end">
-          <Button size="small" variant={adding ? "secondary" : "primary"} onClick={() => setAdding(!adding)}>
-            {adding ? "Close" : "Add candidates"}
+          <Button size="small" variant="primary" onClick={() => setAdding(true)}>
+            Add candidates
           </Button>
         </span>
       </div>
@@ -253,7 +253,7 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
         </div>
       </details>
 
-      {adding && (
+      <ReviewModal title="Add candidates" size="large" isOpen={adding} onClose={() => setAdding(false)}>
         <AddCandidate
           vocab={props.vocab}
           listed={listed}
@@ -264,7 +264,7 @@ export const Candidates = (props: { vocab: Vocabulary }) => {
             load()
           }}
         />
-      )}
+      </ReviewModal>
 
       {selected.length > 0 && (
         <div className="r-toolbar r-toolbar--sticky" aria-live="polite">

@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { Button } from "@fider/components"
 import { Action, review } from "./api"
-import { ErrorText, TextField } from "./components"
+import { ErrorText, ReviewModal, TextField } from "./components"
 
 // Follow-ups for one candidate. itemId ties new actions to the meeting decision that created them.
 export const ActionsPanel = (props: { candidateId: number; itemId?: number; actions: Action[]; onChanged: () => void }) => {
@@ -9,6 +9,7 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
   const [nextStep, setNextStep] = useState("")
   const [reviewOn, setReviewOn] = useState("")
   const [error, setError] = useState<string>()
+  const [adding, setAdding] = useState(false)
 
   const add = async () => {
     const result = await review.addAction(props.candidateId, { itemId: props.itemId, owner, nextStep, reviewOn })
@@ -17,6 +18,7 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
     setOwner("")
     setNextStep("")
     setReviewOn("")
+    setAdding(false)
     props.onChanged()
   }
 
@@ -72,10 +74,13 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
           </tbody>
         </table>
       )}
-      <div className="r-action-add">
+      <Button size="small" onClick={() => setAdding(true)}>
+        Add action
+      </Button>
+      <ReviewModal title="Add a follow-up action" isOpen={adding} onClose={() => setAdding(false)}>
         <div className="r-field">
-          <label htmlFor={`${prefix}-step`}>New next step</label>
-          <input id={`${prefix}-step`} type="text" value={nextStep} onChange={(e) => setNextStep(e.target.value)} />
+          <label htmlFor={`${prefix}-step`}>Next step</label>
+          <input id={`${prefix}-step`} type="text" value={nextStep} onChange={(e) => setNextStep(e.target.value)} autoFocus />
         </div>
         <div className="r-field">
           <label htmlFor={`${prefix}-owner`}>Owner</label>
@@ -85,11 +90,13 @@ export const ActionsPanel = (props: { candidateId: number; itemId?: number; acti
           <label htmlFor={`${prefix}-date`}>Review date</label>
           <input id={`${prefix}-date`} type="date" value={reviewOn} onChange={(e) => setReviewOn(e.target.value)} />
         </div>
-        <Button size="small" disabled={!nextStep.trim()} onClick={add}>
-          Add action
-        </Button>
-      </div>
-      <ErrorText message={error} />
+        <div className="r-modal__actions">
+          <Button variant="primary" size="small" disabled={!nextStep.trim()} onClick={add}>
+            Add action
+          </Button>
+        </div>
+        <ErrorText message={error} />
+      </ReviewModal>
     </div>
   )
 }

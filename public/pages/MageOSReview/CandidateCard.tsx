@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react"
 import { Button } from "@fider/components"
 import { PostStatus } from "@fider/models"
+import { useFider } from "@fider/hooks"
 import { CandidateDetail, HistoryEvent, Vocabulary, review } from "./api"
 import { ActionsPanel } from "./Actions"
 import { AssessmentSummary, Demand, MyAssessment } from "./Assessments"
-import { Badge, ErrorText, SampleBadge, SelectField, TextField } from "./components"
+import { Badge, ErrorText, ReviewModal, SampleBadge, SelectField, TextField } from "./components"
 import { effortLabels, fieldLabels, ideaStatusLabel, label, outcomeLabels, readinessGroupTitle, stageLabels, trackLabels, valueGroupTitle } from "./labels"
 import { Volunteers } from "./Volunteers"
 
@@ -48,66 +49,82 @@ export const HistoryList = (props: { events: HistoryEvent[] }) =>
 
 // Changing the public status is a separate, confirmed step. The public text starts empty so internal
 // notes are never published by accident.
-const PublicStatus = (props: { detail: CandidateDetail; onChanged: () => void }) => {
+const PublicStatus = (props: { detail: CandidateDetail; onChanged: () => void; onNotice: (message: string) => void }) => {
   const idea = props.detail.candidate.idea
+  const [open, setOpen] = useState(false)
   const [status, setStatus] = useState(idea?.status ?? "open")
   const [text, setText] = useState("")
   const [confirmed, setConfirmed] = useState(false)
-  const [message, setMessage] = useState<string>()
   const [error, setError] = useState<string>()
   if (!idea) return null
 
+  const close = () => {
+    setOpen(false)
+    setConfirmed(false)
+    setError(undefined)
+  }
   const publish = async () => {
     const result = await review.setPublicStatus(idea.number, status, text)
     if (!result.ok) return setError(result.message)
     await review.logPublicStatus(props.detail.candidate.id, status, text)
-    setError(undefined)
-    setConfirmed(false)
     setText("")
-    setMessage("Public status updated. Followers of the idea are notified.")
+    close()
+    props.onNotice("Public status updated. Followers of the idea are notified.")
     props.onChanged()
   }
 
   return (
-    <details className="r-panel r-public">
-      <summary>Update the public status on the board</summary>
-      <p className="r-hint">
-        Currently <strong>{ideaStatusLabel(idea.status)}</strong>. Everything below is public. Internal notes, ratings and draft decisions are never copied
-        here.
-      </p>
-      <div className="r-field">
-        <label htmlFor="r-public-status">New public status</label>
-        <select id="r-public-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          {PostStatus.All.filter((s) => s.value !== "duplicate").map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.title}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="r-field">
-        <label htmlFor="r-public-text">Public response (optional)</label>
-        <textarea id="r-public-text" rows={3} value={text} onChange={(e) => setText(e.target.value)} />
-      </div>
-      <label className="r-check">
-        <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I understand this is shown publicly and notifies
-        followers.
-      </label>
-      <Button variant="primary" size="small" disabled={!confirmed} onClick={publish}>
+    <>
+      <Button size="small" onClick={() => setOpen(true)}>
         Update public status
       </Button>
-      <ErrorText message={error} />
-      {message && <p className="r-status r-status--ok">{message}</p>}
-    </details>
+      <ReviewModal title="Update the public status on the board" isOpen={open} onClose={close}>
+        <p className="r-hint">
+          Currently <strong>{ideaStatusLabel(idea.status)}</strong>. Everything below is public. Internal notes, ratings and draft decisions are never copied
+          here.
+        </p>
+        <div className="r-field">
+          <label htmlFor="r-public-status">New public status</label>
+          <select id="r-public-status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            {PostStatus.All.filter((s) => s.value !== "duplicate").map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="r-field">
+          <label htmlFor="r-public-text">Public response (optional)</label>
+          <textarea id="r-public-text" rows={3} value={text} onChange={(e) => setText(e.target.value)} />
+        </div>
+        <label className="r-check">
+          <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> I understand this is shown publicly and notifies
+          followers.
+        </label>
+        <div className="r-modal__actions">
+          <Button variant="primary" size="small" disabled={!confirmed} onClick={publish}>
+            Update public status
+          </Button>
+        </div>
+        <ErrorText message={error} />
+      </ReviewModal>
+    </>
   )
 }
+
+type CardTab = "proposal" | "assessment" | "people" | "decisions"
 
 export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
   const [detail, setDetail] = useState<CandidateDetail>()
   const [error, setError] = useState<string>()
+  const [notice, setNotice] = useState<string>()
+  const [tab, setTab] = useState<CardTab>("proposal")
+  const fider = useFider()
 
   const load = () => review.candidate(props.id).then((r) => (r.ok ? setDetail(r.data) : setError(r.message)))
   useEffect(() => {
+    setTab("proposal")
+    setNotice(undefined)
     load()
   }, [props.id])
 
@@ -119,6 +136,21 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
     return result
   }
   const isMissing = (field: string) => c.missing.includes(field)
+  const mine = detail.assessments.filter((a) => a.userId === fider.session.user.id && a.rating !== "").length
+  const totalCriteria = props.vocab.valueCriteria.length + props.vocab.readinessCriteria.length
+  const openActions = detail.actions.filter((a) => !a.isDone).length
+  const tabs: { key: CardTab; title: string; note?: string }[] = [
+    { key: "proposal", title: "Proposal", note: c.missing.length > 0 ? `${c.missing.length} missing` : undefined },
+    { key: "assessment", title: "Assessment", note: mine < totalCriteria ? `you: ${mine} of ${totalCriteria}` : undefined },
+    {
+      key: "people",
+      title: "People & actions",
+      note:
+        [detail.volunteers?.length ? `${detail.volunteers.length} volunteers` : "", openActions ? `${openActions} open` : ""].filter(Boolean).join(", ") ||
+        undefined,
+    },
+    { key: "decisions", title: "Decisions & history", note: detail.decisions.length ? String(detail.decisions.length) : undefined },
+  ]
 
   return (
     <article className="r-card">
@@ -165,12 +197,33 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
               )}
             </span>
           )}
+          <span className="r-card__public">
+            <PublicStatus detail={detail} onChanged={load} onNotice={setNotice} />
+          </span>
         </div>
+        {notice && <p className="r-status r-status--ok">{notice}</p>}
       </header>
 
-      <div className="r-card__grid">
-        <section aria-labelledby="r-card-proposal">
-          <h3 id="r-card-proposal">Proposal</h3>
+      <div className="r-tabs r-tabs--card" role="tablist" aria-label="Candidate sections">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            id={`r-card-tab-${t.key}`}
+            aria-selected={tab === t.key}
+            aria-controls={`r-card-panel-${t.key}`}
+            className={tab === t.key ? "is-active" : ""}
+            onClick={() => setTab(t.key)}
+          >
+            {t.title}
+            {t.note && <span className="r-tabs__note">{t.note}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === "proposal" && (
+        <section className="r-card__panel" role="tabpanel" id="r-card-panel-proposal" aria-labelledby="r-card-tab-proposal">
           {c.missing.length > 0 && <p className="r-hint">Incomplete cards can still be discussed. Missing fields show what to ask for.</p>}
           {!c.idea && <TextField label={fieldLabels.title} value={c.title} onSave={save("title")} />}
           {!c.idea && <TextField label={fieldLabels.sourceUrl} value={c.sourceUrl} onSave={save("sourceUrl")} />}
@@ -180,73 +233,81 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
               <p className="r-quote">{c.idea.description}</p>
             </details>
           )}
-          {textFields.map((f) => (
-            <TextField
-              key={f.key}
-              label={fieldLabels[f.key]}
-              value={(c as unknown as Record<string, string>)[f.key]}
-              multiline={f.multiline}
-              hint={f.hint}
-              missing={isMissing(f.key)}
-              onSave={save(f.key)}
-            />
-          ))}
-          <SelectField
-            label={fieldLabels.effort}
-            value={c.effort}
-            options={props.vocab.efforts}
-            labels={effortLabels}
-            missing={isMissing("effort")}
-            onSave={save("effort")}
-          />
-        </section>
-
-        <section aria-labelledby="r-card-assess">
-          <h3 id="r-card-assess">Demand</h3>
-          <Demand candidate={c} participation={detail.participation} roles={props.vocab.roles} />
-          <h3>Your assessment</h3>
-          <MyAssessment candidateId={c.id} vocab={props.vocab} assessments={detail.assessments} onSaved={load} />
-          <h3>Team assessments</h3>
-          <h4>{valueGroupTitle}</h4>
-          <AssessmentSummary criteria={props.vocab.valueCriteria} assessments={detail.assessments} />
-          <h4>{readinessGroupTitle}</h4>
-          <AssessmentSummary criteria={props.vocab.readinessCriteria} assessments={detail.assessments} />
-        </section>
-      </div>
-
-      <section>
-        <h3>Volunteers</h3>
-        <Volunteers candidateId={c.id} volunteers={detail.volunteers ?? []} owner={c.owner} onChanged={load} onSetOwner={save("owner")} />
-      </section>
-
-      <section>
-        <h3>Actions</h3>
-        <ActionsPanel candidateId={c.id} actions={detail.actions} onChanged={load} />
-      </section>
-
-      <section>
-        <h3>Decisions</h3>
-        {detail.decisions.length === 0 ? (
-          <p className="r-muted">Not on any meeting agenda yet.</p>
-        ) : (
-          <ul className="r-list">
-            {detail.decisions.map((d) => (
-              <li key={d.id}>
-                <a href={`#/meeting/${d.meetingId}`}>{d.meetingHeldOn}</a>: {label(outcomeLabels, d.outcome)}{" "}
-                {d.finalizedAt ? <Badge tone="final">Final · {d.finalizedBy}</Badge> : <Badge tone="draft">Draft</Badge>}
-                {d.rationale && <div className="r-muted">{d.rationale}</div>}
-              </li>
+          <div className="r-fieldgrid">
+            {textFields.map((f) => (
+              <TextField
+                key={f.key}
+                label={fieldLabels[f.key]}
+                value={(c as unknown as Record<string, string>)[f.key]}
+                multiline={f.multiline}
+                hint={f.hint}
+                missing={isMissing(f.key)}
+                onSave={save(f.key)}
+              />
             ))}
-          </ul>
-        )}
-      </section>
+            <SelectField
+              label={fieldLabels.effort}
+              value={c.effort}
+              options={props.vocab.efforts}
+              labels={effortLabels}
+              missing={isMissing("effort")}
+              onSave={save("effort")}
+            />
+          </div>
+        </section>
+      )}
 
-      <PublicStatus detail={detail} onChanged={load} />
+      {tab === "assessment" && (
+        <section className="r-card__panel r-card__grid" role="tabpanel" id="r-card-panel-assessment" aria-labelledby="r-card-tab-assessment">
+          <div>
+            <h3>Your assessment</h3>
+            <MyAssessment candidateId={c.id} vocab={props.vocab} assessments={detail.assessments} onSaved={load} />
+          </div>
+          <div>
+            <h3>Demand</h3>
+            <Demand candidate={c} participation={detail.participation} roles={props.vocab.roles} />
+            <h3>Team assessments</h3>
+            <h4>{valueGroupTitle}</h4>
+            <AssessmentSummary criteria={props.vocab.valueCriteria} assessments={detail.assessments} />
+            <h4>{readinessGroupTitle}</h4>
+            <AssessmentSummary criteria={props.vocab.readinessCriteria} assessments={detail.assessments} />
+          </div>
+        </section>
+      )}
 
-      <details className="r-panel">
-        <summary>History ({detail.history.length})</summary>
-        <HistoryList events={detail.history} />
-      </details>
+      {tab === "people" && (
+        <section className="r-card__panel r-card__grid" role="tabpanel" id="r-card-panel-people" aria-labelledby="r-card-tab-people">
+          <div>
+            <h3>Volunteers</h3>
+            <Volunteers candidateId={c.id} volunteers={detail.volunteers ?? []} owner={c.owner} onChanged={load} onSetOwner={save("owner")} />
+          </div>
+          <div>
+            <h3>Actions</h3>
+            <ActionsPanel candidateId={c.id} actions={detail.actions} onChanged={load} />
+          </div>
+        </section>
+      )}
+
+      {tab === "decisions" && (
+        <section className="r-card__panel" role="tabpanel" id="r-card-panel-decisions" aria-labelledby="r-card-tab-decisions">
+          <h3>Decisions</h3>
+          {detail.decisions.length === 0 ? (
+            <p className="r-muted">Not on any meeting agenda yet.</p>
+          ) : (
+            <ul className="r-list">
+              {detail.decisions.map((d) => (
+                <li key={d.id}>
+                  <a href={`#/meeting/${d.meetingId}`}>{d.meetingHeldOn}</a>: {label(outcomeLabels, d.outcome)}{" "}
+                  {d.finalizedAt ? <Badge tone="final">Final · {d.finalizedBy}</Badge> : <Badge tone="draft">Draft</Badge>}
+                  {d.rationale && <div className="r-muted">{d.rationale}</div>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <h3>History</h3>
+          <HistoryList events={detail.history} />
+        </section>
+      )}
     </article>
   )
 }

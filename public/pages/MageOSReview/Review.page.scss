@@ -1,5 +1,7 @@
 // Mage-OS fork: roadmap review tool. Theme colors come from CSS variables, so dark mode follows the board.
-#p-mageos-review {
+// .r-modal is listed too because modals render in a portal outside the page and would otherwise lose the form styles.
+#p-mageos-review,
+.r-modal {
   padding-top: 1.5rem;
   padding-bottom: 4rem;
   font-size: 15px;
@@ -68,6 +70,110 @@
   textarea {
     resize: vertical;
   }
+}
+
+.c-modal-window.r-modal {
+  padding: 0;
+  background: var(--colors-white);
+  .c-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--colors-gray-200);
+  }
+  .c-modal-content {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+}
+.r-modal__close {
+  background: none;
+  border: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--colors-gray-700);
+  cursor: pointer;
+}
+.r-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.r-autogrow {
+  resize: none !important;
+  overflow: hidden;
+  min-height: 2.1rem;
+}
+
+.r-tabs--card {
+  margin: 1.25rem 0 0.5rem;
+  button {
+    background: none;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 1rem;
+    color: var(--colors-gray-700);
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+  button.is-active {
+    color: var(--colors-gray-900);
+    border-bottom-color: var(--colors-primary-base);
+    font-weight: 600;
+  }
+}
+.r-tabs__note {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--colors-gray-600);
+}
+.r-card__panel {
+  padding-top: 0.5rem;
+}
+.r-card__public {
+  margin-left: auto;
+}
+.r-fieldgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1.5rem;
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.r-decision--closed {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+.r-decision__toggle {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--colors-gray-900);
+  cursor: pointer;
+  text-align: left;
+}
+.r-decision__chevron {
+  display: inline-block;
+  width: 1.1rem;
+  color: var(--colors-gray-600);
+}
+.r-decision__summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.r-decision__card {
+  font-size: 0.85rem;
 }
 
 .r-title {
