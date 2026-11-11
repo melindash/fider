@@ -20,6 +20,10 @@ var (
 	PostDeleted PostStatus = 6
 	//PostUnderReview is used when organizers are evaluating a post before deciding whether to plan it (Mage-OS fork)
 	PostUnderReview PostStatus = 7
+	//PostUnclaimed is used when a task was open for volunteers but nobody claimed it in time (Mage-OS fork)
+	PostUnclaimed PostStatus = 8
+	//PostParked is used when a task is set aside but stays listed publicly (Mage-OS fork)
+	PostParked PostStatus = 9
 )
 var postStatusIDs = map[PostStatus]string{
 	PostOpen:      "open",
@@ -31,6 +35,8 @@ var postStatusIDs = map[PostStatus]string{
 	PostDeleted:   "deleted",
 
 	PostUnderReview: "underreview",
+	PostUnclaimed:   "unclaimed",
+	PostParked:      "parked",
 }
 
 var postStatusNames = map[string]PostStatus{
@@ -43,6 +49,8 @@ var postStatusNames = map[string]PostStatus{
 	"deleted":   PostDeleted,
 
 	"underreview": PostUnderReview,
+	"unclaimed":   PostUnclaimed,
+	"parked":      PostParked,
 }
 
 // MarshalText returns the Text version of the post status

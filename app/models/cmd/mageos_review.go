@@ -106,3 +106,16 @@ type MageOSReviewLogPublicStatus struct {
 type MageOSReviewRemoveSampleData struct {
 	Removed int
 }
+
+// MageOSReviewAddVolunteer links a Fider account (UserID), a GitHub username, or both to a candidate.
+type MageOSReviewAddVolunteer struct {
+	CandidateID int
+	UserID      int
+	GitHubLogin string
+
+	Result *entity.MageOSReviewVolunteer
+}
+
+type MageOSReviewRemoveVolunteer struct {
+	ID int
+}

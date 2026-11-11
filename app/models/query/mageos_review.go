@@ -16,6 +16,7 @@ type MageOSReviewGetCandidate struct {
 	Actions     []*entity.MageOSReviewAction
 	Items       []*entity.MageOSReviewItem
 	Events      []*entity.MageOSReviewEvent
+	Volunteers  []*entity.MageOSReviewVolunteer
 }
 
 type MageOSReviewListMeetings struct {

@@ -5,7 +5,7 @@ import { ActionsPanel } from "./Actions"
 import { AssessmentSummary, Demand } from "./Assessments"
 import { HistoryList } from "./CandidateCard"
 import { Badge, Empty, ErrorText, SampleBadge, SelectField, TextField } from "./components"
-import { escalationLabels, fieldLabels, label, outcomeLabels } from "./labels"
+import { escalationLabels, fieldLabels, label, outcomeLabels, readinessGroupTitle, valueGroupTitle } from "./labels"
 
 export const Meetings = () => {
   const [meetings, setMeetings] = useState<Meeting[]>()
@@ -127,9 +127,9 @@ const Decision = (props: { item: Item; vocab: Vocabulary; onChanged: () => void 
           <Demand candidate={c} roles={[]} />
           <details>
             <summary>Team assessments ({c.assessors} people)</summary>
-            <h4>Value</h4>
+            <h4>{valueGroupTitle}</h4>
             <AssessmentSummary criteria={props.vocab.valueCriteria} assessments={item.assessments || []} />
-            <h4>Delivery readiness</h4>
+            <h4>{readinessGroupTitle}</h4>
             <AssessmentSummary criteria={props.vocab.readinessCriteria} assessments={item.assessments || []} />
           </details>
         </div>

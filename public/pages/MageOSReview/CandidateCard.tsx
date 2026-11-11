@@ -5,7 +5,8 @@ import { CandidateDetail, HistoryEvent, Vocabulary, review } from "./api"
 import { ActionsPanel } from "./Actions"
 import { AssessmentSummary, Demand, MyAssessment } from "./Assessments"
 import { Badge, ErrorText, SampleBadge, SelectField, TextField } from "./components"
-import { deliveryLabels, effortLabels, fieldLabels, ideaStatusLabel, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
+import { effortLabels, fieldLabels, ideaStatusLabel, label, outcomeLabels, readinessGroupTitle, stageLabels, trackLabels, valueGroupTitle } from "./labels"
+import { Volunteers } from "./Volunteers"
 
 const textFields: { key: string; multiline?: boolean; hint?: string }[] = [
   { key: "problem", multiline: true },
@@ -16,8 +17,8 @@ const textFields: { key: string; multiline?: boolean; hint?: string }[] = [
   { key: "evidence", multiline: true, hint: "Discussions, support threads, data. One link per line." },
   { key: "dependencies", multiline: true },
   { key: "risks", multiline: true },
-  { key: "owner", hint: "Who would lead delivery or run the initiative." },
-  { key: "reviewer", hint: "Who would review the work." },
+  { key: "owner", hint: "The volunteer who leads the task. Pick from Volunteers below or type a name." },
+  { key: "reviewer", hint: "The Tech Team member volunteers go to with questions." },
   { key: "operatingNeeds", multiline: true, hint: "Maintenance, moderation, hosting, people needed after launch." },
   { key: "openQuestions", multiline: true },
   { key: "links", multiline: true, hint: "GitHub issues or discussions tracking implementation. One per line." },
@@ -156,11 +157,12 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
         <div className="r-card__meta">
           <SelectField inline label="Track" value={c.track} options={props.vocab.tracks} labels={trackLabels} onSave={save("track")} />
           <SelectField inline label="Review stage" value={c.stage} options={props.vocab.stages} labels={stageLabels} onSave={save("stage")} />
-          <SelectField inline label="Delivery" value={c.delivery} options={props.vocab.delivery} labels={deliveryLabels} onSave={save("delivery")} />
           {c.latestOutcome && (
             <span>
               Last decision: <strong>{label(outcomeLabels, c.latestOutcome)}</strong> ({c.latestDecidedAt})
-              {c.latestOutcome === "prioritize" && c.delivery === "none" && <Badge tone="draft">Prioritized, not scheduled</Badge>}
+              {c.latestOutcome === "prioritize" && c.idea && ["open", "underreview"].includes(c.idea.status) && (
+                <Badge tone="draft">Accepted, not yet open for volunteers</Badge>
+              )}
             </span>
           )}
         </div>
@@ -205,12 +207,17 @@ export const CandidateCard = (props: { id: number; vocab: Vocabulary }) => {
           <h3>Your assessment</h3>
           <MyAssessment candidateId={c.id} vocab={props.vocab} assessments={detail.assessments} onSaved={load} />
           <h3>Team assessments</h3>
-          <h4>Value</h4>
+          <h4>{valueGroupTitle}</h4>
           <AssessmentSummary criteria={props.vocab.valueCriteria} assessments={detail.assessments} />
-          <h4>Delivery readiness</h4>
+          <h4>{readinessGroupTitle}</h4>
           <AssessmentSummary criteria={props.vocab.readinessCriteria} assessments={detail.assessments} />
         </section>
       </div>
+
+      <section>
+        <h3>Volunteers</h3>
+        <Volunteers candidateId={c.id} volunteers={detail.volunteers ?? []} owner={c.owner} onChanged={load} onSetOwner={save("owner")} />
+      </section>
 
       <section>
         <h3>Actions</h3>

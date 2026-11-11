@@ -80,7 +80,7 @@ func TestNotifyAboutStatusChangeTask(t *testing.T) {
 		"siteName":    "Demonstration",
 		"content":     template.HTML("<p>Planned for next release.</p>"),
 		"duplicate":   "",
-		"status":      "Planned",
+		"status":      "Open for volunteers",
 		"view":        "<a href='http://domain.com/posts/1/add-support-for-typescript'>view it on your browser</a>",
 		"change":      "<a href='http://domain.com/settings'>change your notification preferences</a>",
 		"unsubscribe": "<a href='http://domain.com/posts/1/add-support-for-typescript'>unsubscribe from it</a>",

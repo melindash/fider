@@ -48,6 +48,8 @@ func mageosReviewRoutes(g *web.Group) {
 	g.Put("/api/v1/mageos/review/candidates/:id", apiv1.ReviewUpdateCandidate())
 	g.Put("/api/v1/mageos/review/candidates/:id/assessment", apiv1.ReviewSetAssessment())
 	g.Post("/api/v1/mageos/review/candidates/:id/actions", apiv1.ReviewAddAction())
+	g.Post("/api/v1/mageos/review/candidates/:id/volunteers", apiv1.ReviewAddVolunteer())
+	g.Delete("/api/v1/mageos/review/volunteers/:id", apiv1.ReviewRemoveVolunteer())
 	g.Post("/api/v1/mageos/review/candidates/:id/public-status-log", apiv1.ReviewLogPublicStatus())
 	g.Get("/api/v1/mageos/review/compare", apiv1.ReviewCompare())
 	g.Put("/api/v1/mageos/review/actions/:id", apiv1.ReviewUpdateAction())

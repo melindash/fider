@@ -2,7 +2,7 @@ import React from "react"
 import { useFider } from "@fider/hooks"
 import { Assessment, Candidate, Participation, Vocabulary, review } from "./api"
 import { Badge, SelectField, TextField } from "./components"
-import { criterionLabels, ratingLabels, roleLabels } from "./labels"
+import { criterionLabels, ratingLabels, readinessGroupTitle, roleLabels, valueGroupTitle } from "./labels"
 
 // Shows each rating with who gave it. Counts per rating only; ratings are never combined into a score.
 export const AssessmentSummary = (props: { criteria: string[]; assessments: Assessment[]; compact?: boolean; bare?: boolean }) => (
@@ -78,8 +78,8 @@ export const MyAssessment = (props: { candidateId: number; vocab: Vocabulary; as
   )
   return (
     <div className="r-myassess-groups">
-      {group("Value", props.vocab.valueCriteria)}
-      {group("Delivery readiness", props.vocab.readinessCriteria)}
+      {group(valueGroupTitle, props.vocab.valueCriteria)}
+      {group(readinessGroupTitle, props.vocab.readinessCriteria)}
     </div>
   )
 }

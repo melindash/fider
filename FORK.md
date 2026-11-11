@@ -7,6 +7,9 @@ Fork of [getfider/fider](https://github.com/getfider/fider) for the Mage-OS idea
 | Feature | Where | Notes |
 |---|---|---|
 | **Under review** status (`underreview`, id 7) | `app/models/enum/post_status.go`, `public/models/post.ts`, `ShowPostResponse.tsx` | Sits between Open and Planned. Not shown on the roadmap. |
+| Rules v1 statuses: **Unclaimed** (`unclaimed`, id 8), **Parked** (`parked`, id 9); English labels Idea / Open for volunteers / In progress / Done for `open` / `planned` / `started` / `completed` | `post_status.go`, `actions/post.go`, `common.go`, `post.go`, `models/post.ts`, `ShowPostResponse.tsx`, `locale/*/client.json`, `locale/en/server.json` | Labels only: values and ids are unchanged. Unclaimed is in the default list; Parked only in "all". Both stay open for votes. |
+| Rules v1 submit form | `app/pkg/mageos/submit_rules.go`, `actions/post.go`, `ShareFeedback.tsx` | With `MAGEOS_SUBMIT_RULES=true`, new ideas need a description (an untouched template counts as empty) and at least one tag. The tags field is labelled "Focus area". |
+| Review volunteers | `mageos_review_volunteers`, `postgres/mageos_review_volunteers.go`, `apiv1/mageos_review_volunteers.go`, `MageOSReview/Volunteers.tsx` | Each volunteer is a Fider account, a GitHub username, or both. "Make task owner" copies the name into the card's Owner field. |
 | Anonymous voting | `app/pkg/mageos/`, `*mageos*.go`, `app/middlewares/mageos_voter.go`, `public/hooks/use-mageos-vote.ts`, `public/components/mageos/` | Cookie `mageos_voter`; DB stores SHA-256 only. Unique (post, voter) prevents duplicate votes. |
 | Rate limits and abuse tools | `app/pkg/mageos/ratelimit.go`, `app/handlers/apiv1/mageos.go` | Per-network limits; admin burst report and void endpoint. |
 | Sign-in merge | `app/middlewares/mageos_voter.go` | On the first signed-in request carrying a voter cookie: votes and roles move to the account, duplicates collapse. |
@@ -38,7 +41,8 @@ Upstream files touched only at integration seams: `routes.go` (middleware, webho
 | `MAGEOS_ANONYMOUS_POSTS_PER_NETWORK_PER_HOUR` | 10 | Ideas without an account per network. |
 | `MAGEOS_ANONYMOUS_POSTS_PER_VOTER_PER_HOUR` | 3 | Ideas without an account per browser. |
 | `MAGEOS_GITHUB_WEBHOOK_SECRET` | empty | Enables `POST /webhooks/github`. Empty = endpoint returns 404. |
-| `MAGEOS_GITHUB_AUTO_STATUS` | `false` | Allows Planned → Started when a linked issue or PR opens. |
+| `MAGEOS_GITHUB_AUTO_STATUS` | `false` | Allows Planned or Unclaimed → Started when a linked issue or PR opens. |
+| `MAGEOS_SUBMIT_RULES` | `false` | Requires a description and a focus-area tag on new ideas (Development Priorities Rules v1). |
 
 ## Anonymous voting: what it does and does not prevent
 
@@ -57,7 +61,7 @@ Upstream files touched only at integration seams: `routes.go` (middleware, webho
 
 | GitHub event on a linked item | Link state | Idea status change |
 |---|---|---|
-| Issue or PR opened / reopened | `open` | Planned → Started, only if `MAGEOS_GITHUB_AUTO_STATUS=true` |
+| Issue or PR opened / reopened | `open` | Planned or Unclaimed → Started, only if `MAGEOS_GITHUB_AUTO_STATUS=true` |
 | PR merged | `merged` | None |
 | Issue closed, PR closed unmerged | `closed` | None |
 | Discussion links | not synced | None |

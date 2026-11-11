@@ -49,6 +49,7 @@ func getViewData(query query.SearchPosts, tagsPlaceholder int) (string, []enum.P
 			enum.PostUnderReview,
 			enum.PostStarted,
 			enum.PostPlanned,
+			enum.PostUnclaimed,
 		}
 	}
 
@@ -92,6 +93,8 @@ func getViewData(query query.SearchPosts, tagsPlaceholder int) (string, []enum.P
 			enum.PostPlanned,
 			enum.PostCompleted,
 			enum.PostDeclined,
+			enum.PostUnclaimed,
+			enum.PostParked,
 		}
 	case "trending":
 		fallthrough

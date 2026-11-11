@@ -32,11 +32,11 @@
   "validation.custom.maximagepixels": "The image dimensions are too large. Please upload an image with a lower resolution.",
   "validation.custom.imageprocessingbusy": "The server is busy processing other images. Please try again in a moment.",
   "validation.custom.invalidemoji": "Invalid reaction emoji.",
-  "enum.poststatus.open": "Open",
-  "enum.poststatus.started": "Started",
-  "enum.poststatus.completed": "Completed",
+  "enum.poststatus.open": "Idea",
+  "enum.poststatus.started": "In progress",
+  "enum.poststatus.completed": "Done",
   "enum.poststatus.declined": "Declined",
-  "enum.poststatus.planned": "Planned",
+  "enum.poststatus.planned": "Open for volunteers",
   "enum.poststatus.duplicate": "Duplicate",
   "enum.poststatus.deleted": "Deleted",
   "email.change_emailaddress.subject": "Confirm your new email",
@@ -79,5 +79,7 @@
   "feed.post.title": "# {title}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}}\n\n---\n",
   "feed.post.footer.response": "Response by {responder} on {date}:\n\n>{response}\n",
   "feed.post.footer": "\n\n---\n{response_footer}\n{votes, plural, one {# vote} other {# votes}}, {comments, plural, one {# comment} other {# comments}} - view [in the web]({web_link}) or [as a feed]({feed_link})",
-  "enum.poststatus.underreview": "Under review"
+  "enum.poststatus.underreview": "Under review",
+  "enum.poststatus.unclaimed": "Unclaimed",
+  "enum.poststatus.parked": "Parked"
 }

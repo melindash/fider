@@ -142,3 +142,13 @@ type MageOSReviewDashboard struct {
 	Overdue           []*MageOSReviewAction    `json:"overdue"`
 	UpcomingMeetings  []*MageOSReviewMeeting   `json:"upcomingMeetings"`
 }
+
+// MageOSReviewVolunteer is a person who offered to work on a candidate.
+type MageOSReviewVolunteer struct {
+	ID          int       `json:"id" db:"id"`
+	CandidateID int       `json:"candidateId" db:"candidate_id"`
+	UserID      int       `json:"userId" db:"user_id"`
+	UserName    string    `json:"userName" db:"user_name"`
+	GitHubLogin string    `json:"githubLogin" db:"github_login"`
+	CreatedAt   time.Time `json:"createdAt" db:"created_at"`
+}

@@ -2,7 +2,7 @@ import "./ShareFeedback.scss"
 
 import React, { useEffect, useRef, useState } from "react"
 import { AnonymousSubmit } from "@fider/components/mageos/AnonymousSubmit"
-import { Modal, CloseIcon, Form, Button, Input, LegalFooter } from "@fider/components/common"
+import { Modal, CloseIcon, Form, Button, Input, LegalFooter, DisplayError } from "@fider/components/common"
 import { useFider } from "@fider/hooks"
 import { Trans } from "@lingui/react/macro"
 import { actions, Failure, querystring, classSet, cache } from "@fider/services"
@@ -260,11 +260,12 @@ export const ShareFeedback: React.FC<ShareFeedbackProps> = (props) => {
               {canEditTags && (
                 <div className="c-form-field">
                   <label>
-                    <Trans id="label.tags">Tags</Trans>
+                    <Trans id="mageos.newpost.focusarea">Focus area</Trans>
                   </label>
                   <div className={classSet({ "c-form-field": true })}>
                     <TagsSelect tags={props.tags} selectionChanged={handleTagsChanged} selected={tags} alwaysEditing={true} canEdit={true} />
                   </div>
+                  <DisplayError fields={["tags"]} error={error} />
                 </div>
               )}
             </Form>

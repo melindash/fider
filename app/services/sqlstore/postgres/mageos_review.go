@@ -43,6 +43,8 @@ func registerMageOSReviewHandlers() {
 	bus.AddHandler(mageosReviewGetMeeting)
 	bus.AddHandler(mageosReviewGetAssessments)
 	bus.AddHandler(mageosReviewGetDashboard)
+	bus.AddHandler(mageosReviewAddVolunteer)
+	bus.AddHandler(mageosReviewRemoveVolunteer)
 }
 
 type mageosReviewChange struct {
@@ -739,6 +741,9 @@ func mageosReviewGetCandidate(ctx context.Context, q *query.MageOSReviewGetCandi
 			return err
 		}
 		if q.Actions, err = mageosReviewSelectActions(trx, tenant.ID, "a.candidate_id = $2", q.ID); err != nil {
+			return err
+		}
+		if q.Volunteers, err = mageosReviewSelectVolunteers(trx, tenant.ID, "v.candidate_id = $2", q.ID); err != nil {
 			return err
 		}
 		q.Items = []*entity.MageOSReviewItem{}

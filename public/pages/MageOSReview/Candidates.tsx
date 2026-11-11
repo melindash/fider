@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import { Button } from "@fider/components"
 import { Candidate, Meeting, RatingCount, Vocabulary, review } from "./api"
 import { Badge, Empty, ErrorText, SampleBadge } from "./components"
-import { deliveryLabels, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
+import { ideaStatusLabel, label, outcomeLabels, stageLabels, trackLabels } from "./labels"
 
 type BoardIdea = { number: number; title: string; votesCount: number }
 
@@ -100,7 +100,7 @@ const CandidateStatus = (props: { c: Candidate }) => {
   return (
     <>
       <Badge tone={c.latestOutcome === "prioritize" ? "final" : "muted"}>{label(outcomeLabels, c.latestOutcome)}</Badge>
-      {c.latestOutcome === "prioritize" && <div className="r-muted">{label(deliveryLabels, c.delivery)}</div>}
+      {c.latestOutcome === "prioritize" && c.idea && <div className="r-muted">{ideaStatusLabel(c.idea.status)}</div>}
     </>
   )
 }

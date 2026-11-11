@@ -2,7 +2,19 @@ import React, { useEffect, useState } from "react"
 import { Assessment, Candidate, Participation, Vocabulary, review } from "./api"
 import { AssessmentSummary } from "./Assessments"
 import { ErrorText, SampleBadge } from "./components"
-import { criterionLabels, effortLabels, ideaStatusLabel, label, outcomeLabels, roleLabels, stageLabels, trackLabels } from "./labels"
+import {
+  criterionLabels,
+  effortLabels,
+  fieldLabels,
+  ideaStatusLabel,
+  label,
+  outcomeLabels,
+  readinessGroupTitle,
+  roleLabels,
+  stageLabels,
+  trackLabels,
+  valueGroupTitle,
+} from "./labels"
 
 type Column = { candidate: Candidate; assessments: Assessment[]; participation?: Participation }
 
@@ -79,14 +91,14 @@ export const Compare = (props: { ids: number[]; vocab: Vocabulary }) => {
             )}
             {row("No role given", (c) => (c.participation ? c.participation.noRole : "n/a"))}
 
-            {block("Value")}
+            {block(valueGroupTitle)}
             {criteria(props.vocab.valueCriteria)}
 
-            {block("Delivery readiness")}
+            {block(readinessGroupTitle)}
             {criteria(props.vocab.readinessCriteria)}
-            {row("Rough effort", (c) => effortLabels[c.candidate.effort])}
-            {row("Initiative owner", (c) => c.candidate.owner || <span className="r-missing-tag">Missing</span>)}
-            {row("Reviewer", (c) => c.candidate.reviewer || <span className="r-missing-tag">Missing</span>)}
+            {row(fieldLabels.effort, (c) => effortLabels[c.candidate.effort])}
+            {row(fieldLabels.owner, (c) => c.candidate.owner || <span className="r-missing-tag">Missing</span>)}
+            {row(fieldLabels.reviewer, (c) => c.candidate.reviewer || <span className="r-missing-tag">Missing</span>)}
             {row("Dependencies", (c) => c.candidate.dependencies || "None recorded")}
             {row("Operating needs", (c) => c.candidate.operatingNeeds || <span className="r-missing-tag">Missing</span>)}
             {row("Open questions", (c) => c.candidate.openQuestions || "None recorded")}

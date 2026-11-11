@@ -83,6 +83,15 @@ func TestSetResponse_UnderReviewIsValid(t *testing.T) {
 	ExpectSuccess(result)
 }
 
+func TestSetResponse_UnclaimedAndParkedAreValid(t *testing.T) {
+	RegisterT(t)
+
+	for _, status := range []enum.PostStatus{enum.PostUnclaimed, enum.PostParked} {
+		action := &actions.SetResponse{Status: status, Text: "No volunteer after four weeks."}
+		ExpectSuccess(action.Validate(context.Background(), nil))
+	}
+}
+
 func TestDeletePost_WhenIsBeingReferenced(t *testing.T) {
 	RegisterT(t)
 
@@ -298,4 +307,27 @@ func TestEditComment_TooManyAttachments(t *testing.T) {
 		newUpload(mock.UniformPNG(100, 100)),
 	)
 	ExpectSuccess(result)
+}
+
+func TestCreateNewPost_SubmitRulesRequireDescriptionAndFocusArea(t *testing.T) {
+	RegisterT(t)
+	t.Setenv("MAGEOS_SUBMIT_RULES", "true")
+	bus.AddHandler(func(ctx context.Context, q *query.GetPostBySlug) error { return app.ErrNotFound })
+
+	ctx := context.WithValue(context.Background(), app.TenantCtxKey, &entity.Tenant{DescriptionTemplate: "What's wrong, and for whom?"})
+
+	action := &actions.CreateNewPost{Title: "Faster category page indexing", Description: "  What's wrong, and for whom?  "}
+	result := action.Validate(ctx, nil)
+	ExpectFailed(result, "description", "tags")
+
+	action = &actions.CreateNewPost{Title: "Faster category page indexing", Description: "Reindex blocks checkout for merchants.", TagSlugs: []string{"performance"}, Tags: []*entity.Tag{{Slug: "performance"}}}
+	ExpectSuccess(action.Validate(ctx, nil))
+}
+
+func TestCreateNewPost_SubmitRulesOffKeepsDescriptionOptional(t *testing.T) {
+	RegisterT(t)
+	bus.AddHandler(func(ctx context.Context, q *query.GetPostBySlug) error { return app.ErrNotFound })
+
+	action := &actions.CreateNewPost{Title: "Faster category page indexing"}
+	ExpectSuccess(action.Validate(context.Background(), nil))
 }

@@ -24,9 +24,9 @@ export const deliveryLabels: Record<string, string> = {
 
 export const effortLabels: Record<string, string> = {
   "": "Not set",
-  small: "Small",
-  medium: "Medium",
-  large: "Large",
+  small: "Small (up to 3 person-days)",
+  medium: "Medium (4 to 10 person-days)",
+  large: "Large (over 10 person-days, consider splitting)",
   unknown: "Unknown",
 }
 
@@ -39,20 +39,20 @@ export const ratingLabels: Record<string, string> = {
 
 export const criterionLabels: Record<string, { title: string; hint: string }> = {
   benefit: { title: "User / community benefit", hint: "How much it helps the people affected." },
-  alignment: { title: "Alignment with agreed priorities", hint: "Fit with what the project has already agreed to focus on." },
+  alignment: { title: "Fits the focus area", hint: "Fit with the focus areas and what the project has already agreed to prioritize." },
   demand: { title: "Evidence of demand", hint: "Votes, discussions, support requests. Votes are one input." },
-  feasibility: { title: "Delivery effort and feasibility", hint: "Strong means realistic to deliver." },
-  people: { title: "Contributors and reviewers available", hint: "Strong means people have committed." },
+  feasibility: { title: "Effort and feasibility", hint: "Strong means realistic to deliver." },
+  people: { title: "Volunteers and Tech Team review available", hint: "Strong means people have committed." },
   support: { title: "Dependencies and ongoing support", hint: "Strong means few blockers and a clear maintainer." },
 }
 
 export const outcomeLabels: Record<string, string> = {
   "": "No outcome yet",
-  needs_clarification: "Needs clarification",
-  seek_comments: "Seek community comments",
-  investigate: "Investigate / scope",
-  prioritize: "Prioritize",
-  defer: "Defer",
+  needs_clarification: "Not decided: needs clarification",
+  seek_comments: "Not decided: seek community comments",
+  investigate: "Not decided: investigate / scope",
+  prioritize: "Accept (prioritize)",
+  defer: "Park (defer)",
   decline: "Decline",
 }
 
@@ -80,9 +80,9 @@ export const fieldLabels: Record<string, string> = {
   evidence: "Evidence and sources",
   dependencies: "Dependencies",
   risks: "Risks",
-  effort: "Rough effort",
-  owner: "Initiative owner",
-  reviewer: "Reviewer",
+  effort: "Effort",
+  owner: "Task owner",
+  reviewer: "Tech Team contact",
   operatingNeeds: "Ongoing maintenance / operating needs",
   openQuestions: "Open questions",
   links: "Implementation links (GitHub issues, discussions)",
@@ -98,6 +98,10 @@ export const fieldLabels: Record<string, string> = {
   unresolved: "Unresolved questions",
   escalation: "Escalation",
 }
+
+// Headings follow the acceptance tests in Development Priorities Rules v1; the two server-side criteria groups stay as they are.
+export const valueGroupTitle = "Clear value and fits the focus area"
+export const readinessGroupTitle = "Tech Team can support it"
 
 export const label = (map: Record<string, string>, value: string): string => map[value] ?? value
 

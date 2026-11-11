@@ -107,7 +107,7 @@ func applyGitHubEvent(c *web.Context, event string, body []byte) (string, error)
 				return "", err
 			}
 			post := getPost.Result
-			if post.Status != enum.PostPlanned {
+			if post.Status != enum.PostPlanned && post.Status != enum.PostUnclaimed {
 				continue
 			}
 			// Status changes need an acting user. Act as the maintainer who marked the idea Planned,

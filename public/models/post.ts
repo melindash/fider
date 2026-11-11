@@ -28,11 +28,13 @@ export class PostStatus {
     public filterable: boolean
   ) {}
 
-  public static Open = new PostStatus("Open", "open", false, false, true)
+  public static Open = new PostStatus("Idea", "open", false, false, true)
   public static UnderReview = new PostStatus("Under review", "underreview", true, false, true)
-  public static Planned = new PostStatus("Planned", "planned", true, false, true)
-  public static Started = new PostStatus("Started", "started", true, false, true)
-  public static Completed = new PostStatus("Completed", "completed", true, true, true)
+  public static Planned = new PostStatus("Open for volunteers", "planned", true, false, true)
+  public static Started = new PostStatus("In progress", "started", true, false, true)
+  public static Unclaimed = new PostStatus("Unclaimed", "unclaimed", true, false, true)
+  public static Parked = new PostStatus("Parked", "parked", true, false, true)
+  public static Completed = new PostStatus("Done", "completed", true, true, true)
   public static Declined = new PostStatus("Declined", "declined", true, true, true)
   public static Duplicate = new PostStatus("Duplicate", "duplicate", true, true, true)
   public static Deleted = new PostStatus("Deleted", "deleted", false, true, true)
@@ -51,6 +53,8 @@ export class PostStatus {
     PostStatus.UnderReview,
     PostStatus.Planned,
     PostStatus.Started,
+    PostStatus.Unclaimed,
+    PostStatus.Parked,
     PostStatus.Completed,
     PostStatus.Duplicate,
     PostStatus.Declined,

@@ -149,6 +149,7 @@ func ReviewGetCandidate() web.HandlerFunc {
 			"actions":       q.Actions,
 			"decisions":     q.Items,
 			"history":       q.Events,
+			"volunteers":    q.Volunteers,
 			"participation": participation,
 		})
 	}

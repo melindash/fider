@@ -154,12 +154,21 @@ export interface Participation {
   historicalVotes: number
 }
 
+export interface Volunteer {
+  id: number
+  candidateId: number
+  userId: number
+  userName: string
+  githubLogin: string
+}
+
 export interface CandidateDetail {
   candidate: Candidate
   assessments: Assessment[]
   actions: Action[]
   decisions: Item[]
   history: HistoryEvent[]
+  volunteers: Volunteer[]
   participation?: Participation
 }
 
@@ -186,6 +195,9 @@ export const review = {
   addAction: (id: number, input: { itemId?: number; owner: string; nextStep: string; reviewOn: string }) =>
     call<Action>("POST", `${base}/candidates/${id}/actions`, input),
   updateAction: (id: number, fields: Record<string, string>) => call<unknown>("PUT", `${base}/actions/${id}`, { fields }),
+  addVolunteer: (id: number, input: { userId?: number; github?: string }) => call<Volunteer>("POST", `${base}/candidates/${id}/volunteers`, input),
+  removeVolunteer: (id: number) => call<unknown>("DELETE", `${base}/volunteers/${id}`),
+  searchUsers: (q: string) => call<{ users: { id: number; name: string }[] }>("GET", `/api/v1/users?query=${encodeURIComponent(q)}&limit=8`),
   logPublicStatus: (id: number, status: string, text: string) => call<unknown>("POST", `${base}/candidates/${id}/public-status-log`, { status, text }),
   compare: (ids: number[]) =>
     call<{ candidate: Candidate; assessments: Assessment[]; participation?: Participation }[]>("GET", `${base}/compare?ids=${ids.join(",")}`),

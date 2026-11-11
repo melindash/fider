@@ -7,6 +7,8 @@ import HeroIconSparkles from "@fider/assets/images/heroicons-sparkles-outline.sv
 import HeroIconLightBulb from "@fider/assets/images/heroicons-lightbulb.svg"
 import HeroIconThumbsUp from "@fider/assets/images/heroicons-thumbsup.svg"
 import HeroIconThumbsDown from "@fider/assets/images/heroicons-thumbsdown.svg"
+import HeroIconClock from "@fider/assets/images/heroicons-clock.svg"
+import HeroIconInbox from "@fider/assets/images/heroicons-inbox.svg"
 import { HStack, VStack } from "./layout"
 import { Trans } from "@lingui/react/macro"
 import { useFider } from "@fider/hooks"
@@ -70,6 +72,10 @@ const getLozengeProps = (status: PostStatus): { icon: SpriteSymbol; bg: string; 
       return { icon: HeroIconCheck, bg: "bg-green-100", color: "text-green-800", border: "border-green-400" }
     case PostStatus.UnderReview:
       return { icon: HeroIconLightBulb, bg: "bg-yellow-100", color: "text-yellow-800", border: "border-yellow-400" }
+    case PostStatus.Unclaimed:
+      return { icon: HeroIconClock, bg: "bg-yellow-100", color: "text-yellow-800", border: "border-yellow-400" }
+    case PostStatus.Parked:
+      return { icon: HeroIconInbox, bg: "bg-gray-100", color: "text-gray-700", border: "border-gray-300" }
     case PostStatus.Planned:
       return { icon: HeroIconThumbsUp, bg: "bg-blue-100", color: "text-blue-700", border: "border-blue-400" }
     case PostStatus.Started:
@@ -84,15 +90,19 @@ const getLozengeProps = (status: PostStatus): { icon: SpriteSymbol; bg: string; 
 const getStatusTranslation = (status: PostStatus): JSX.Element => {
   switch (status) {
     case PostStatus.Open:
-      return <Trans id="enum.poststatus.open">Open</Trans>
+      return <Trans id="enum.poststatus.open">Idea</Trans>
     case PostStatus.UnderReview:
       return <Trans id="enum.poststatus.underreview">Under review</Trans>
     case PostStatus.Planned:
-      return <Trans id="enum.poststatus.planned">Planned</Trans>
+      return <Trans id="enum.poststatus.planned">Open for volunteers</Trans>
     case PostStatus.Started:
-      return <Trans id="enum.poststatus.started">Started</Trans>
+      return <Trans id="enum.poststatus.started">In progress</Trans>
     case PostStatus.Completed:
-      return <Trans id="enum.poststatus.completed">Completed</Trans>
+      return <Trans id="enum.poststatus.completed">Done</Trans>
+    case PostStatus.Unclaimed:
+      return <Trans id="enum.poststatus.unclaimed">Unclaimed</Trans>
+    case PostStatus.Parked:
+      return <Trans id="enum.poststatus.parked">Parked</Trans>
     case PostStatus.Declined:
       return <Trans id="enum.poststatus.declined">Declined</Trans>
     case PostStatus.Duplicate:

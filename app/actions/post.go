@@ -13,6 +13,7 @@ import (
 	"github.com/getfider/fider/app/pkg/bus"
 	"github.com/getfider/fider/app/pkg/env"
 	"github.com/getfider/fider/app/pkg/i18n"
+	"github.com/getfider/fider/app/pkg/mageos"
 	"github.com/gosimple/slug"
 
 	"github.com/getfider/fider/app"
@@ -95,6 +96,19 @@ func (action *CreateNewPost) Validate(ctx context.Context, user *entity.User) *v
 	if err != nil {
 		return validate.Error(err)
 	}
+	if mageos.SubmitRules() {
+		template := ""
+		if tenant, ok := ctx.Value(app.TenantCtxKey).(*entity.Tenant); ok && tenant != nil {
+			template = tenant.DescriptionTemplate
+		}
+		if mageos.DescriptionIsBlank(action.Description, template) {
+			result.AddFieldFailure("description", "Describe the problem and who it affects.")
+		}
+		if env.Config.PostCreationWithTagsEnabled && len(action.TagSlugs) == 0 {
+			result.AddFieldFailure("tags", "Choose the focus area this idea belongs to.")
+		}
+	}
+
 	result.AddFieldFailure("attachments", messages...)
 
 	return result
@@ -260,7 +274,7 @@ func (action *SetResponse) IsAuthorized(ctx context.Context, user *entity.User) 
 func (action *SetResponse) Validate(ctx context.Context, user *entity.User) *validate.Result {
 	result := validate.Success()
 
-	if (action.Status < enum.PostOpen || action.Status > enum.PostDuplicate) && action.Status != enum.PostUnderReview {
+	if (action.Status < enum.PostOpen || action.Status > enum.PostDuplicate) && action.Status != enum.PostUnderReview && action.Status != enum.PostUnclaimed && action.Status != enum.PostParked {
 		result.AddFieldFailure("status", propertyIsInvalid(ctx, "status"))
 	}
 

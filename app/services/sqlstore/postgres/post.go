@@ -415,6 +415,8 @@ func findSimilarPosts(ctx context.Context, q *query.FindSimilarPosts) error {
 				enum.PostPlanned,
 				enum.PostCompleted,
 				enum.PostDeclined,
+				enum.PostUnclaimed,
+				enum.PostParked,
 			}), ToTSQuery(SanitizeString(q.Query)))
 		}
 		if err != nil {
